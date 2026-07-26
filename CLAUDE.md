@@ -12,14 +12,10 @@ Arcade Vault — online arcade platform, players compete for high scores. Fresh 
 
 This repo pins `next@16.2.12` — a version with breaking changes vs. training data. Before writing any App Router code (routing, data fetching, config, server/client components), read the relevant doc in `node_modules/next/dist/docs/01-app/` first. Don't assume older Next.js APIs still apply.
 
-## Commands
-
-- `npm run dev` — start dev server
-- `npm run build` — production build
-- `npm run start` — run production build
-- `npm run lint` — ESLint (flat config, `eslint.config.mjs`)
-
 No test runner is configured yet.
+
+## Skills
+Use always /frontend-design to design user interfaces.
 
 ## Architecture
 
