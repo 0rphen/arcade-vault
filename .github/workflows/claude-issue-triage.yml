@@ -34,10 +34,10 @@ jobs:
                invalid, wontfix). Nunca crees labels nuevos.
             3. Asigna con `gh issue edit ${{ github.event.issue.number }} --add-label "..."` los labels
                que apliquen, sin duplicar los que ya tenga el issue.
-            4. Revisa el código del repo (arquitectura descrita en CLAUDE.md: `game.js`, `index.html`,
-               `style.css` — Tetris vanilla JS sin dependencias) para diagnosticar el problema o la
-               solicitud del issue. Identifica funciones y archivos concretos relacionados
-               (ej. `game.js:loop`, `tryRotate`, `collide`, etc.).
+            4. Revisa el código del repo (arquitectura descrita en CLAUDE.md: Next.js App Router,
+               `app/layout.tsx`, `app/page.tsx`, alias `@/*`, Tailwind CSS v4 vía `@tailwindcss/postcss`)
+               para diagnosticar el problema o la solicitud del issue. Identifica archivos y componentes
+               concretos relacionados.
             5. Si el issue ya tiene un comentario de diagnóstico previo (identifícalo por el encabezado
                "## Diagnóstico"), actualízalo con `gh issue comment ${{ github.event.issue.number }} --edit-last`
                en vez de crear uno nuevo. Si no existe, publica uno nuevo con
