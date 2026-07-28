@@ -36,9 +36,23 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
-          plugins: 'code-review@claude-code-plugins'
-          prompt: '/code-review:code-review ${{ github.repository }}/pull/${{ github.event.pull_request.number }}'
+          # The code-review plugin is built for interactive terminal use and
+          # silently fails in headless CI (Bash is denied by default in SDK
+          # mode, so it can't run `gh` or post comments). Use a direct prompt
+          # with explicit tool grants instead.
+          # See https://github.com/anthropics/claude-code-action/blob/main/examples/pr-review-comprehensive.yml
+          prompt: |
+            Review this pull request comprehensively for:
+            - Code quality and best practices
+            - Security issues
+            - Performance concerns
+            - Adherence to CLAUDE.md instructions
+            Post inline comments for specific issues.
+          allowed_tools: |
+            mcp__github_inline_comment__create_inline_comment
+            Bash(gh pr comment:*)
+            Bash(gh pr diff:*)
+            Bash(gh pr view:*)
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options
 
