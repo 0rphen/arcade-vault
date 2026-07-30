@@ -70,7 +70,7 @@ export default function GamePlayer({ game }: { game: Game }) {
           <button className="btn magenta" onClick={endGame}>
             FIN
           </button>
-          <button className="btn ghost" onClick={() => router.push(`/juegos/${game.id}`)}>
+          <button className="btn ghost" onClick={() => router.push(`/games/${game.id}`)}>
             SALIR
           </button>
         </div>
