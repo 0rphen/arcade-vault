@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "statusMessage": "Formateando con prettier/eslint...",
+            "timeout": 120,
+            "command": "jq -r '.tool_input.file_path // .tool_response.filePath // empty' | { read -r f; case \"$f\" in *.ts|*.tsx|*.js|*.jsx|*.md|*.json|*.css) npx prettier --write \"$f\" >/dev/null; case \"$f\" in *.ts|*.tsx|*.js|*.jsx) npx eslint --fix \"$f\" >/dev/null;; esac;; esac; } 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
+  }
+}
