@@ -13,6 +13,7 @@ export default function GamePlayer({ game }: { game: Game }) {
   const [lives, setLives] = useState(3);
   const [level, setLevel] = useState(1);
   const [paused, setPaused] = useState(false);
+  const [tripleShot, setTripleShot] = useState(0);
   const [over, setOver] = useState(false);
   const [name, setName] = useState("INVITADO");
   const [saved, setSaved] = useState(false);
@@ -42,6 +43,7 @@ export default function GamePlayer({ game }: { game: Game }) {
     setLives(3);
     setLevel(1);
     setPaused(false);
+    setTripleShot(0);
     setOver(false);
     setSaved(false);
   };
@@ -68,6 +70,14 @@ export default function GamePlayer({ game }: { game: Game }) {
             <div className="l">Nivel</div>
             <div className="v">{String(level).padStart(2, "0")}</div>
           </div>
+          {tripleShot > 0 && (
+            <div className="hud-stat">
+              <div className="l">Disparo triple</div>
+              <div className="v" style={{ color: "var(--cyan)" }}>
+                3x {tripleShot.toFixed(1)}s
+              </div>
+            </div>
+          )}
         </div>
         <div className="hud-actions">
           <button className="btn yellow" onClick={() => setPaused((p) => !p)}>
@@ -94,6 +104,7 @@ export default function GamePlayer({ game }: { game: Game }) {
                 onScoreChange={setScore}
                 onLivesChange={setLives}
                 onLevelChange={setLevel}
+                onTripleShotChange={setTripleShot}
                 onGameOver={(finalScore) => {
                   setScore(finalScore);
                   endGame();

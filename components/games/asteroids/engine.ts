@@ -5,6 +5,7 @@ export interface AsteroidsCallbacks {
   onScoreChange: (score: number) => void;
   onLivesChange: (lives: number) => void;
   onLevelChange: (level: number) => void;
+  onTripleShotChange: (secondsLeft: number) => void;
   onGameOver: (finalScore: number) => void;
 }
 
@@ -363,6 +364,7 @@ export function createAsteroidsEngine(
   let lastEmittedScore = -1;
   let lastEmittedLives = -1;
   let lastEmittedLevel = -1;
+  let lastEmittedTripleShot = -1;
   let gameOverEmitted = false;
 
   function emitScore() {
@@ -381,6 +383,16 @@ export function createAsteroidsEngine(
     if (level !== lastEmittedLevel) {
       lastEmittedLevel = level;
       callbacks.onLevelChange(level);
+    }
+  }
+  function emitTripleShot() {
+    // Redondeado a décimas: baja ~10 veces por segundo mientras está activo
+    // en vez de 60 veces por segundo (evita renders excesivos en React).
+    const rounded =
+      ship.tripleShot > 0 ? Math.ceil(ship.tripleShot * 10) / 10 : 0;
+    if (rounded !== lastEmittedTripleShot) {
+      lastEmittedTripleShot = rounded;
+      callbacks.onTripleShotChange(rounded);
     }
   }
 
@@ -413,6 +425,7 @@ export function createAsteroidsEngine(
     emitScore();
     emitLives();
     emitLevel();
+    emitTripleShot();
   }
 
   function nextLevel() {
@@ -473,6 +486,7 @@ export function createAsteroidsEngine(
     }
 
     ship.update(dt);
+    emitTripleShot();
     bullets.forEach((b) => b.update(dt));
     asteroids.forEach((a) => a.update(dt));
     particles.forEach((p) => p.update(dt));
@@ -526,42 +540,8 @@ export function createAsteroidsEngine(
   }
 
   // ── Draw ────────────────────────────────────────────────────────────────
-  function drawLifeIcon(x: number, y: number) {
-    ctx!.save();
-    ctx!.translate(x, y);
-    ctx!.rotate(-Math.PI / 2);
-    ctx!.strokeStyle = "#fff";
-    ctx!.lineWidth = 1.2;
-    ctx!.lineJoin = "round";
-    ctx!.beginPath();
-    ctx!.moveTo(9, 0);
-    ctx!.lineTo(-6, -5);
-    ctx!.lineTo(-3, 0);
-    ctx!.lineTo(-6, 5);
-    ctx!.closePath();
-    ctx!.stroke();
-    ctx!.restore();
-  }
-
-  function drawHUD() {
-    ctx!.fillStyle = "#fff";
-    ctx!.font = "15px monospace";
-
-    ctx!.textAlign = "left";
-    ctx!.fillText(`SCORE  ${score}`, 14, 26);
-
-    ctx!.textAlign = "center";
-    ctx!.fillText(`NIVEL ${level}`, W / 2, 26);
-
-    for (let i = 0; i < lives; i++) drawLifeIcon(W - 16 - i * 22, 18);
-
-    if (ship.tripleShot > 0) {
-      ctx!.textAlign = "left";
-      ctx!.fillStyle = "#0ff";
-      ctx!.fillText(`3x  ${ship.tripleShot.toFixed(1)}s`, 14, 46);
-    }
-  }
-
+  // El HUD (score/nivel/vidas/disparo triple) lo dibuja React vía los
+  // callbacks — no se duplica aquí dentro del canvas.
   function drawOverlay(title: string, sub: string) {
     ctx!.textAlign = "center";
     ctx!.fillStyle = "#fff";
@@ -581,8 +561,6 @@ export function createAsteroidsEngine(
     powerUps.forEach((p) => p.draw());
     bullets.forEach((b) => b.draw());
     ship.draw();
-
-    drawHUD();
 
     if (state === "gameover") drawOverlay("GAME OVER", `PUNTAJE: ${score}`);
   }

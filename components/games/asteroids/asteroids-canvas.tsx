@@ -11,6 +11,7 @@ export interface AsteroidsCanvasProps {
   onScoreChange: (score: number) => void;
   onLivesChange: (lives: number) => void;
   onLevelChange: (level: number) => void;
+  onTripleShotChange: (secondsLeft: number) => void;
   onGameOver: (finalScore: number) => void;
 }
 
@@ -19,6 +20,7 @@ export default function AsteroidsCanvas({
   onScoreChange,
   onLivesChange,
   onLevelChange,
+  onTripleShotChange,
   onGameOver,
 }: AsteroidsCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -32,6 +34,7 @@ export default function AsteroidsCanvas({
       onScoreChange,
       onLivesChange,
       onLevelChange,
+      onTripleShotChange,
       onGameOver,
     });
     engineRef.current = engine;
