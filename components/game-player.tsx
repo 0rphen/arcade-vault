@@ -4,13 +4,16 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Game } from "@/lib/data";
 import { appendScore, getStoredUser } from "@/lib/session";
+import AsteroidsCanvas from "@/components/games/asteroids/asteroids-canvas";
 
 export default function GamePlayer({ game }: { game: Game }) {
   const router = useRouter();
+  const isAsteroids = game.id === "rocas";
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
   const [level, setLevel] = useState(1);
   const [paused, setPaused] = useState(false);
+  const [tripleShot, setTripleShot] = useState(0);
   const [over, setOver] = useState(false);
   const [name, setName] = useState("INVITADO");
   const [saved, setSaved] = useState(false);
@@ -21,14 +24,18 @@ export default function GamePlayer({ game }: { game: Game }) {
   }, []);
 
   useEffect(() => {
-    if (over || paused) return;
-    const t = setInterval(() => setScore((s) => s + Math.floor(10 + Math.random() * 90)), 220);
+    if (isAsteroids || over || paused) return;
+    const t = setInterval(
+      () => setScore((s) => s + Math.floor(10 + Math.random() * 90)),
+      220,
+    );
     return () => clearInterval(t);
-  }, [over, paused]);
+  }, [isAsteroids, over, paused]);
 
   useEffect(() => {
+    if (isAsteroids) return;
     if (score > 0 && score % 2500 < 100) setLevel((l) => l + 1);
-  }, [score]);
+  }, [isAsteroids, score]);
 
   const endGame = () => setOver(true);
   const restart = () => {
@@ -36,6 +43,7 @@ export default function GamePlayer({ game }: { game: Game }) {
     setLives(3);
     setLevel(1);
     setPaused(false);
+    setTripleShot(0);
     setOver(false);
     setSaved(false);
   };
@@ -62,6 +70,14 @@ export default function GamePlayer({ game }: { game: Game }) {
             <div className="l">Nivel</div>
             <div className="v">{String(level).padStart(2, "0")}</div>
           </div>
+          {tripleShot > 0 && (
+            <div className="hud-stat">
+              <div className="l">Disparo triple</div>
+              <div className="v" style={{ color: "var(--cyan)" }}>
+                3x {tripleShot.toFixed(1)}s
+              </div>
+            </div>
+          )}
         </div>
         <div className="hud-actions">
           <button className="btn yellow" onClick={() => setPaused((p) => !p)}>
@@ -70,7 +86,10 @@ export default function GamePlayer({ game }: { game: Game }) {
           <button className="btn magenta" onClick={endGame}>
             FIN
           </button>
-          <button className="btn ghost" onClick={() => router.push(`/games/${game.id}`)}>
+          <button
+            className="btn ghost"
+            onClick={() => router.push(`/games/${game.id}`)}
+          >
             SALIR
           </button>
         </div>
@@ -78,22 +97,46 @@ export default function GamePlayer({ game }: { game: Game }) {
 
       <div className="crt">
         <div className="crt-screen">
-          <div className="game-arena">
-            <div className="grid-floor"></div>
-            <div className="enemy e1"></div>
-            <div className="enemy e2"></div>
-            <div className="enemy e3"></div>
-            <div className="player-ship"></div>
-          </div>
+          {isAsteroids ? (
+            !over && (
+              <AsteroidsCanvas
+                paused={paused}
+                onScoreChange={setScore}
+                onLivesChange={setLives}
+                onLevelChange={setLevel}
+                onTripleShotChange={setTripleShot}
+                onGameOver={(finalScore) => {
+                  setScore(finalScore);
+                  endGame();
+                }}
+              />
+            )
+          ) : (
+            <div className="game-arena">
+              <div className="grid-floor"></div>
+              <div className="enemy e1"></div>
+              <div className="enemy e2"></div>
+              <div className="enemy e3"></div>
+              <div className="player-ship"></div>
+            </div>
+          )}
           {paused && (
-            <div className="crt-content" style={{ background: "rgba(0,0,0,0.6)", zIndex: 5 }}>
+            <div
+              className="crt-content"
+              style={{ background: "rgba(0,0,0,0.6)", zIndex: 5 }}
+            >
               <div>
                 <div className="pixel neon-yellow" style={{ fontSize: 22 }}>
                   EN PAUSA
                 </div>
                 <div
                   className="mono"
-                  style={{ fontSize: 11, color: "var(--ink-dim)", marginTop: 10, letterSpacing: "0.16em" }}
+                  style={{
+                    fontSize: 11,
+                    color: "var(--ink-dim)",
+                    marginTop: 10,
+                    letterSpacing: "0.16em",
+                  }}
                 >
                   PULSA REANUDAR PARA CONTINUAR
                 </div>
@@ -118,7 +161,9 @@ export default function GamePlayer({ game }: { game: Game }) {
               <div className="input-row">
                 <input
                   value={name}
-                  onChange={(e) => setName(e.target.value.toUpperCase().slice(0, 10))}
+                  onChange={(e) =>
+                    setName(e.target.value.toUpperCase().slice(0, 10))
+                  }
                   placeholder="TUS INICIALES"
                 />
                 <button
