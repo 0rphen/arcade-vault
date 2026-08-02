@@ -88,16 +88,18 @@ export default function GamePlayer({ game }: { game: Game }) {
       <div className="crt">
         <div className="crt-screen">
           {isAsteroids ? (
-            <AsteroidsCanvas
-              paused={paused}
-              onScoreChange={setScore}
-              onLivesChange={setLives}
-              onLevelChange={setLevel}
-              onGameOver={(finalScore) => {
-                setScore(finalScore);
-                endGame();
-              }}
-            />
+            !over && (
+              <AsteroidsCanvas
+                paused={paused}
+                onScoreChange={setScore}
+                onLivesChange={setLives}
+                onLevelChange={setLevel}
+                onGameOver={(finalScore) => {
+                  setScore(finalScore);
+                  endGame();
+                }}
+              />
+            )
           ) : (
             <div className="game-arena">
               <div className="grid-floor"></div>
