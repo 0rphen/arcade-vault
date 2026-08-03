@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { Game } from "@/lib/data";
+import type { GameWithBest } from "@/lib/supabase/queries";
 import { appendScore, getStoredUser } from "@/lib/session";
+import { saveScoreAction } from "@/lib/actions/scores";
 import AsteroidsCanvas from "@/components/games/asteroids/asteroids-canvas";
 
-export default function GamePlayer({ game }: { game: Game }) {
+export default function GamePlayer({ game }: { game: GameWithBest }) {
   const router = useRouter();
   const isAsteroids = game.id === "rocas";
   const [score, setScore] = useState(0);
@@ -17,6 +18,7 @@ export default function GamePlayer({ game }: { game: Game }) {
   const [over, setOver] = useState(false);
   const [name, setName] = useState("INVITADO");
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState(false);
 
   useEffect(() => {
     const user = getStoredUser();
@@ -46,6 +48,7 @@ export default function GamePlayer({ game }: { game: Game }) {
     setTripleShot(0);
     setOver(false);
     setSaved(false);
+    setSaveError(false);
   };
 
   return (
@@ -168,13 +171,31 @@ export default function GamePlayer({ game }: { game: Game }) {
                 />
                 <button
                   className="btn yellow"
-                  onClick={() => {
-                    appendScore({ game: game.id, score, name });
-                    setSaved(true);
+                  onClick={async () => {
+                    if (isAsteroids) {
+                      try {
+                        setSaveError(false);
+                        await saveScoreAction({ gameId: game.id, name, score });
+                        setSaved(true);
+                      } catch {
+                        setSaveError(true);
+                      }
+                    } else {
+                      appendScore({ game: game.id, score, name });
+                      setSaved(true);
+                    }
                   }}
                 >
                   GUARDAR PUNTUACIÓN
                 </button>
+                {saveError && (
+                  <div
+                    className="toast-saved"
+                    style={{ color: "var(--magenta)" }}
+                  >
+                    ▸ NO SE PUDO GUARDAR, INTENTA DE NUEVO_
+                  </div>
+                )}
               </div>
             ) : (
               <div className="toast-saved">▸ PUNTUACIÓN GUARDADA_</div>
