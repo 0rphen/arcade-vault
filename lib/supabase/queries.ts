@@ -52,23 +52,21 @@ export async function getGamesWithBest(): Promise<GameWithBest[]> {
   const supabase = getSupabase();
   const [
     { data: games, error: gamesError },
-    { data: scores, error: scoresError },
+    { data: bestRows, error: bestError },
   ] = await Promise.all([
     supabase
       .from("games")
       .select("id, title, short, long, cat, cover, color, plays")
       .order("title", { ascending: true }),
-    supabase.from("scores").select("game_id, score"),
+    supabase.from("scores_best").select("game_id, best"),
   ]);
 
   if (gamesError) throw gamesError;
-  if (scoresError) throw scoresError;
+  if (bestError) throw bestError;
 
-  const bestByGame = new Map<string, number>();
-  for (const row of scores ?? []) {
-    const current = bestByGame.get(row.game_id) ?? 0;
-    if (row.score > current) bestByGame.set(row.game_id, row.score);
-  }
+  const bestByGame = new Map<string, number>(
+    (bestRows ?? []).map((row) => [row.game_id, row.best]),
+  );
 
   return (games as DbGame[]).map((g) => ({
     ...g,

@@ -80,7 +80,7 @@ export default function GameDetail({
           )}
           {scores.map((r, i) => (
             <div
-              key={r.name}
+              key={r.rank}
               className={
                 "lb-row" +
                 (i === 0 ? " top1" : i === 1 ? " top2" : i === 2 ? " top3" : "")

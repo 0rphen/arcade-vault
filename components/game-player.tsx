@@ -18,6 +18,7 @@ export default function GamePlayer({ game }: { game: GameWithBest }) {
   const [over, setOver] = useState(false);
   const [name, setName] = useState("INVITADO");
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState(false);
 
   useEffect(() => {
     const user = getStoredUser();
@@ -47,6 +48,7 @@ export default function GamePlayer({ game }: { game: GameWithBest }) {
     setTripleShot(0);
     setOver(false);
     setSaved(false);
+    setSaveError(false);
   };
 
   return (
@@ -169,17 +171,31 @@ export default function GamePlayer({ game }: { game: GameWithBest }) {
                 />
                 <button
                   className="btn yellow"
-                  onClick={() => {
+                  onClick={async () => {
                     if (isAsteroids) {
-                      saveScoreAction({ gameId: game.id, name, score });
+                      try {
+                        setSaveError(false);
+                        await saveScoreAction({ gameId: game.id, name, score });
+                        setSaved(true);
+                      } catch {
+                        setSaveError(true);
+                      }
                     } else {
                       appendScore({ game: game.id, score, name });
+                      setSaved(true);
                     }
-                    setSaved(true);
                   }}
                 >
                   GUARDAR PUNTUACIÓN
                 </button>
+                {saveError && (
+                  <div
+                    className="toast-saved"
+                    style={{ color: "var(--magenta)" }}
+                  >
+                    ▸ NO SE PUDO GUARDAR, INTENTA DE NUEVO_
+                  </div>
+                )}
               </div>
             ) : (
               <div className="toast-saved">▸ PUNTUACIÓN GUARDADA_</div>
