@@ -2,9 +2,9 @@
 
 import { useRef } from "react";
 import Link from "next/link";
-import type { Game } from "@/lib/data";
+import type { GameWithBest } from "@/lib/supabase/queries";
 
-export default function GameCard({ game }: { game: Game }) {
+export default function GameCard({ game }: { game: GameWithBest }) {
   const tiltRef = useRef<HTMLAnchorElement>(null);
 
   const onMove = (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -45,7 +45,11 @@ export default function GameCard({ game }: { game: Game }) {
           <span
             className={
               "btn " +
-              (game.color === "magenta" ? "magenta" : game.color === "yellow" ? "yellow" : "")
+              (game.color === "magenta"
+                ? "magenta"
+                : game.color === "yellow"
+                  ? "yellow"
+                  : "")
             }
           >
             JUGAR

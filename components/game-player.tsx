@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { Game } from "@/lib/data";
+import type { GameWithBest } from "@/lib/supabase/queries";
 import { appendScore, getStoredUser } from "@/lib/session";
+import { saveScoreAction } from "@/lib/actions/scores";
 import AsteroidsCanvas from "@/components/games/asteroids/asteroids-canvas";
 
-export default function GamePlayer({ game }: { game: Game }) {
+export default function GamePlayer({ game }: { game: GameWithBest }) {
   const router = useRouter();
   const isAsteroids = game.id === "rocas";
   const [score, setScore] = useState(0);
@@ -169,7 +170,11 @@ export default function GamePlayer({ game }: { game: Game }) {
                 <button
                   className="btn yellow"
                   onClick={() => {
-                    appendScore({ game: game.id, score, name });
+                    if (isAsteroids) {
+                      saveScoreAction({ gameId: game.id, name, score });
+                    } else {
+                      appendScore({ game: game.id, score, name });
+                    }
                     setSaved(true);
                   }}
                 >

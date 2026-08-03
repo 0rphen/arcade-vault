@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
-import { GAMES } from "@/lib/data";
+import { getGameById, getGames } from "@/lib/supabase/queries";
 import GamePlayer from "@/components/game-player";
 
-export function generateStaticParams() {
-  return GAMES.map((g) => ({ id: g.id }));
+export async function generateStaticParams() {
+  const games = await getGames();
+  return games.map((g) => ({ id: g.id }));
 }
 
 export default async function GamePlayerPage({
@@ -12,7 +13,7 @@ export default async function GamePlayerPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const game = GAMES.find((g) => g.id === id);
+  const game = await getGameById(id);
 
   if (!game) notFound();
 
