@@ -1,6 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
+import { createClient as createServerClient } from "@/lib/supabase/server";
 import type { GameCategory, GameColor } from "@/lib/data";
 
+// Plain client (no cookies): required for reads called from
+// generateStaticParams, which runs at build time without a request.
 function getSupabase() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -86,16 +89,14 @@ export async function getGameById(id: string): Promise<GameWithBest | null> {
   if (!game) return null;
 
   const { data: bestRow, error: bestError } = await supabase
-    .from("scores")
-    .select("score")
+    .from("scores_best")
+    .select("best")
     .eq("game_id", id)
-    .order("score", { ascending: false })
-    .limit(1)
     .maybeSingle();
 
   if (bestError) throw bestError;
 
-  return { ...(game as DbGame), best: bestRow?.score ?? 0 };
+  return { ...(game as DbGame), best: bestRow?.best ?? 0 };
 }
 
 export async function getTopScores(
@@ -120,12 +121,15 @@ export async function getTopScores(
   }));
 }
 
+// Only invoked from Server Actions (never generateStaticParams), so the
+// cookie-aware client is safe here and picks up an authenticated session
+// once Supabase Auth lands.
 export async function insertScore(entry: {
   gameId: string;
   name: string;
   score: number;
 }): Promise<void> {
-  const supabase = getSupabase();
+  const supabase = await createServerClient();
   const { error } = await supabase
     .from("scores")
     .insert({ game_id: entry.gameId, name: entry.name, score: entry.score });

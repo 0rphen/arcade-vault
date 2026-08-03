@@ -69,9 +69,16 @@ create policy "scores are publicly readable" on scores
 
 create policy "anyone can insert a score" on scores
   for insert with check (true);
+
+-- scores_best: agregación server-side de MAX(score) por juego, evita
+-- traer todas las filas de scores a Node en cada carga del catálogo.
+create view scores_best as
+  select game_id, max(score) as best
+  from scores
+  group by game_id;
 ```
 
-`games` se siembra en la misma migración con un `insert` de los 8 registros actuales de `lib/data.ts` (sin `best`, que ya no es columna).
+`games` se siembra en la misma migración con un `insert` de los 8 registros actuales de `lib/data.ts` (sin `best`, que ya no es columna). `getGamesWithBest` y `getGameById` leen `best` desde la vista `scores_best` como única fuente de verdad (no hay dos caminos distintos calculando el mismo valor).
 
 ### Tipos TypeScript (`lib/supabase/queries.ts`)
 
