@@ -5,14 +5,16 @@ import { useRouter } from "next/navigation";
 import type { GameWithBest } from "@/lib/supabase/queries";
 import { appendScore, getStoredUser } from "@/lib/session";
 import { saveScoreAction } from "@/lib/actions/scores";
-import AsteroidsCanvas from "@/components/games/asteroids/asteroids-canvas";
+import { PLAYABLE_GAMES } from "@/components/games/registry";
 
 export default function GamePlayer({ game }: { game: GameWithBest }) {
   const router = useRouter();
-  const isAsteroids = game.id === "rocas";
+  const playable = PLAYABLE_GAMES[game.id];
+  const hasRealEngine = Boolean(playable);
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
   const [level, setLevel] = useState(1);
+  const [lines, setLines] = useState(0);
   const [paused, setPaused] = useState(false);
   const [tripleShot, setTripleShot] = useState(0);
   const [over, setOver] = useState(false);
@@ -26,24 +28,25 @@ export default function GamePlayer({ game }: { game: GameWithBest }) {
   }, []);
 
   useEffect(() => {
-    if (isAsteroids || over || paused) return;
+    if (hasRealEngine || over || paused) return;
     const t = setInterval(
       () => setScore((s) => s + Math.floor(10 + Math.random() * 90)),
       220,
     );
     return () => clearInterval(t);
-  }, [isAsteroids, over, paused]);
+  }, [hasRealEngine, over, paused]);
 
   useEffect(() => {
-    if (isAsteroids) return;
+    if (hasRealEngine) return;
     if (score > 0 && score % 2500 < 100) setLevel((l) => l + 1);
-  }, [isAsteroids, score]);
+  }, [hasRealEngine, score]);
 
   const endGame = () => setOver(true);
   const restart = () => {
     setScore(0);
     setLives(3);
     setLevel(1);
+    setLines(0);
     setPaused(false);
     setTripleShot(0);
     setOver(false);
@@ -73,6 +76,12 @@ export default function GamePlayer({ game }: { game: GameWithBest }) {
             <div className="l">Nivel</div>
             <div className="v">{String(level).padStart(2, "0")}</div>
           </div>
+          {game.id === "caida" && (
+            <div className="hud-stat">
+              <div className="l">Líneas</div>
+              <div className="v">{lines}</div>
+            </div>
+          )}
           {tripleShot > 0 && (
             <div className="hud-stat">
               <div className="l">Disparo triple</div>
@@ -100,15 +109,16 @@ export default function GamePlayer({ game }: { game: GameWithBest }) {
 
       <div className="crt">
         <div className="crt-screen">
-          {isAsteroids ? (
+          {playable ? (
             !over && (
-              <AsteroidsCanvas
+              <playable.Canvas
                 paused={paused}
                 onScoreChange={setScore}
                 onLivesChange={setLives}
                 onLevelChange={setLevel}
+                onLinesChange={setLines}
                 onTripleShotChange={setTripleShot}
-                onGameOver={(finalScore) => {
+                onGameOver={(finalScore: number) => {
                   setScore(finalScore);
                   endGame();
                 }}
@@ -172,7 +182,7 @@ export default function GamePlayer({ game }: { game: GameWithBest }) {
                 <button
                   className="btn yellow"
                   onClick={async () => {
-                    if (isAsteroids) {
+                    if (hasRealEngine) {
                       try {
                         setSaveError(false);
                         await saveScoreAction({ gameId: game.id, name, score });
