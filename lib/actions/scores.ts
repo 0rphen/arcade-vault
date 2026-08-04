@@ -13,9 +13,10 @@ export async function getTopScoresAction(
 const MAX_SCORE = 999_999;
 const MAX_NAME_LENGTH = 10;
 
-// ROCAS (spec 05) and CAIDA (spec 07) have real game engines; the rest of
-// the catalog still uses the simulated player and must stay on localStorage.
-const GAMES_WITH_REAL_SCORES = new Set(["rocas", "caida"]);
+// ROCAS (spec 05), CAIDA (spec 07) and ARKANOID (spec 08) have real game
+// engines; the rest of the catalog still uses the simulated player and must
+// stay on localStorage.
+const GAMES_WITH_REAL_SCORES = new Set(["rocas", "caida", "arkanoid"]);
 
 export async function saveScoreAction(entry: {
   gameId: string;
