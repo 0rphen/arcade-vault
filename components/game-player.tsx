@@ -118,6 +118,7 @@ export default function GamePlayer({ game }: { game: GameWithBest }) {
                 onLevelChange={setLevel}
                 onLinesChange={setLines}
                 onTripleShotChange={setTripleShot}
+                onResumeRequested={() => setPaused(false)}
                 onGameOver={(finalScore: number) => {
                   setScore(finalScore);
                   endGame();
@@ -136,7 +137,11 @@ export default function GamePlayer({ game }: { game: GameWithBest }) {
           {paused && (
             <div
               className="crt-content"
-              style={{ background: "rgba(0,0,0,0.6)", zIndex: 5 }}
+              style={{
+                background: "rgba(0,0,0,0.6)",
+                zIndex: 5,
+                pointerEvents: game.id === "arkanoid" ? "none" : "auto",
+              }}
             >
               <div>
                 <div className="pixel neon-yellow" style={{ fontSize: 22 }}>

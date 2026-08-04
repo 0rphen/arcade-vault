@@ -18,4 +18,10 @@ export const PLAYABLE_GAMES: Record<string, PlayableGameEntry> = {
       ssr: false,
     }),
   },
+  arkanoid: {
+    Canvas: dynamic(
+      () => import("@/components/games/arkanoid/arkanoid-canvas"),
+      { ssr: false },
+    ),
+  },
 };

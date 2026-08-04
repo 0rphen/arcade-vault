@@ -6,4 +6,5 @@ export interface PlayableGameProps {
   onLevelChange?: (level: number) => void;
   onLinesChange?: (lines: number) => void;
   onTripleShotChange?: (secondsLeft: number) => void;
+  onResumeRequested?: () => void;
 }
