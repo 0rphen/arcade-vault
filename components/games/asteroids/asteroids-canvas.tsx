@@ -5,15 +5,7 @@ import {
   createAsteroidsEngine,
   type AsteroidsEngine,
 } from "@/components/games/asteroids/engine";
-
-export interface AsteroidsCanvasProps {
-  paused: boolean;
-  onScoreChange: (score: number) => void;
-  onLivesChange: (lives: number) => void;
-  onLevelChange: (level: number) => void;
-  onTripleShotChange: (secondsLeft: number) => void;
-  onGameOver: (finalScore: number) => void;
-}
+import type { PlayableGameProps } from "@/components/games/types";
 
 export default function AsteroidsCanvas({
   paused,
@@ -22,7 +14,7 @@ export default function AsteroidsCanvas({
   onLevelChange,
   onTripleShotChange,
   onGameOver,
-}: AsteroidsCanvasProps) {
+}: PlayableGameProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<AsteroidsEngine | null>(null);
 
@@ -30,11 +22,12 @@ export default function AsteroidsCanvas({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    const noop = () => {};
     const engine = createAsteroidsEngine(canvas, {
       onScoreChange,
-      onLivesChange,
-      onLevelChange,
-      onTripleShotChange,
+      onLivesChange: onLivesChange ?? noop,
+      onLevelChange: onLevelChange ?? noop,
+      onTripleShotChange: onTripleShotChange ?? noop,
       onGameOver,
     });
     engineRef.current = engine;
