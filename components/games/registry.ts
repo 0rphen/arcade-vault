@@ -24,4 +24,9 @@ export const PLAYABLE_GAMES: Record<string, PlayableGameEntry> = {
       { ssr: false },
     ),
   },
+  snake: {
+    Canvas: dynamic(() => import("@/components/games/snake/snake-canvas"), {
+      ssr: false,
+    }),
+  },
 };
