@@ -19,10 +19,14 @@ No test runner is configured yet.
 - Use always `/frontend-design` to design user interfaces (new covers, HUD, screens).
 - Use `/add-game` (`.claude/skills/add-game/`) to draft the spec for a new game (`specs/NN-slug.md`). It never writes code — it produces the spec ready for `/spec-impl`. It covers the three mandatory layers of any game: engine (canvas), platform integration (catalog + `/games/<id>/jugar`), and real Supabase leaderboard.
 
+## Agents
+
+- `game-planner` (`.claude/agents/game-planner.md`) decides which game should be added next to the catalog — weighs catalog gaps, technical fit (canvas 2D single-player contract), and available ports/assets in `references/`. Keeps a memory of past suggestions in `references/game_suggestions_todo.md` so proposals aren't repeated. Never writes specs or code — hands off to `/add-game <slug>`. Run it before `/add-game` when the next game isn't already decided.
+
 ## Architecture
 
 - App Router under `app/`: `app/games` (catalog + `[id]` detail + `[id]/jugar` player), `app/salon` (hall of fame), `app/auth`, `app/about` (contact form via Resend, `app/api/contact/route.ts`). `@/*` path alias maps to repo root (see `tsconfig.json`).
-    - Games live in `components/games/<slug>/` — each has an `engine.ts` (canvas game loop, framework-agnostic) and a `<slug>-canvas.tsx` wrapper. `components/games/registry.ts` maps catalog `id` → component. `components/games/types.ts` holds the shared engine/wrapper contract. Current games: see `references/implemented_games.md`.
+  - Games live in `components/games/<slug>/` — each has an `engine.ts` (canvas game loop, framework-agnostic) and a `<slug>-canvas.tsx` wrapper. `components/games/registry.ts` maps catalog `id` → component. `components/games/types.ts` holds the shared engine/wrapper contract. Current games: see `references/implemented_games.md`.
 - `components/game-player.tsx` hosts a game's canvas + HUD on `/games/[id]/jugar`; `lib/actions/scores.ts` is the server action that persists a run's score to Supabase on game over.
 - Supabase: `lib/supabase/client.ts` (browser), `lib/supabase/server.ts` (server), `lib/supabase/queries.ts` (catalog/leaderboard reads). Tables: `games` (catalog) and `scores` (leaderboard), seeded/migrated per spec 04/06. `lib/session.ts` handles the lightweight player session used to attribute scores.
 - Styling: Tailwind CSS v4 via `@tailwindcss/postcss` (`app/globals.css`, `postcss.config.mjs`) — no `tailwind.config.js`, config is CSS-based. Game cover art uses `cover-*` classes in `app/globals.css`.
