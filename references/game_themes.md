@@ -12,16 +12,18 @@ El selector vive en el HUD compartido (`components/game-player.tsx`, clase `.hud
 
 ## Juegos jugables (candidatos a temas)
 
-| id         | carpeta     | título   | colores hardcodeados en `engine.ts` (aprox.) | temas (Neon/Retro/Clásico × light/dark) |
-| ---------- | ----------- | -------- | -------------------------------------------- | --------------------------------------- |
-| `rocas`    | `asteroids` | ROCAS    | ~7                                           | ❌ pendiente                            |
-| `caida`    | `caida`     | TETRIS   | 13 (ya tematizados)                          | ✅ implementado — Clásico / Neón / Retro × dark+light |
-| `arkanoid` | `arkanoid`  | ARKANOID | ~19                                          | ❌ pendiente                            |
-| `snake`    | `snake`     | SNAKE    | ~2 (usa `sprites.ts` para arte)              | ❌ pendiente                            |
+| id         | carpeta     | título   | colores hardcodeados en `engine.ts` (aprox.)                    | temas (Neon/Retro/Clásico × light/dark)               |
+| ---------- | ----------- | -------- | --------------------------------------------------------------- | ----------------------------------------------------- |
+| `rocas`    | `asteroids` | ROCAS    | ~7                                                              | ❌ pendiente                                          |
+| `caida`    | `caida`     | TETRIS   | 13 (ya tematizados)                                             | ✅ implementado — Clásico / Neón / Retro × dark+light |
+| `arkanoid` | `arkanoid`  | ARKANOID | 11 (ya tematizados; ladrillos/pala/bola/explosiones por sprite) | ✅ implementado — Clásico / Neón / Retro × dark+light |
+| `snake`    | `snake`     | SNAKE    | 3 (ya tematizados; frutas por sprite)                           | ✅ implementado — Clásico / Neón / Retro × dark+light |
 
 `caida`: slots en `components/games/caida/themes.ts` (`background`, `nextBackground`, `grid`, `blockHighlight`, `ghostAlpha`, `pieces.{i,o,t,s,z,j,l,n}`). Sin sprites — todas sus superficies son color plano y quedan dentro de la paleta. `clasico`/`dark` es hex por hex el render original.
 
-`snake` además tiene `sprites.ts` (arte de sprites), a revisar junto con el engine si se le asignan temas.
+`snake`: slots en `components/games/snake/themes.ts` (`background`, `grid`, `snakeHead`, `snakeBody`, `fruitHalo`). Reutiliza el contrato `GameTheme` ya existente (no se extendió `types.ts`). Las frutas son sprites del atlas `public/games/snake/fruits.png` (`sprites.ts`) y **quedan fuera de la paleta**: sólo se les añade un halo detrás (`fruitHalo`) para legibilidad en modo claro. `clasico`/`dark` es hex por hex el render original (`#000`, cabeza `#7dffb0`, cuerpo `#3ddc84`, sin rejilla ni halo: ambos slots valen `"transparent"` y el engine los omite).
+
+`arkanoid`: slots en `components/games/arkanoid/themes.ts` (`background`, `grid`, `hudText`, `overlayScrim`, `overlayText`, `pauseScrim`, `pauseText`, `levelButtonActive`, `levelButtonIdle`, `levelButtonBorder`, `levelButtonActiveLabel`, `levelButtonIdleLabel`). Reutiliza el contrato `GameTheme` ya existente (no se extendió `types.ts`). Ladrillos, pala, bola y explosiones vienen de `/sprites/spritesheet-breakout.png` y **quedan fuera de la paleta** (no re-tematizables sin assets nuevos). `grid` se usa como marco interior del área de juego y vale `#000` en `clasico`/`dark`, así que el render por defecto es idéntico píxel a píxel al original.
 
 ## Juegos solo-catálogo (sin engine, no aplican todavía)
 

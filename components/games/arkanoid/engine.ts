@@ -2,6 +2,11 @@
 // encapsulated, no module-level globals, so multiple mount/unmount cycles
 // stay isolated.
 
+import {
+  resolveArkanoidTheme,
+  type ArkanoidTheme,
+} from "@/components/games/arkanoid/themes";
+
 export interface ArkanoidCallbacks {
   onScoreChange: (score: number) => void;
   onLivesChange: (lives: number) => void;
@@ -14,6 +19,8 @@ export interface ArkanoidEngine {
   start: () => void;
   pause: () => void;
   resume: () => void;
+  /** Cambia la paleta activa y re-pinta el frame actual, sin reiniciar. */
+  setTheme: (theme: ArkanoidTheme) => void;
   destroy: () => void;
 }
 
@@ -257,9 +264,12 @@ function collideAABB(
 export function createArkanoidEngine(
   canvas: HTMLCanvasElement,
   callbacks: ArkanoidCallbacks,
+  initialTheme?: ArkanoidTheme,
 ): ArkanoidEngine {
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("2D context not available on canvas");
+
+  let theme: ArkanoidTheme = initialTheme ?? resolveArkanoidTheme();
 
   const LEVELS = buildLevels();
 
@@ -527,9 +537,9 @@ export function createArkanoidEngine(
 
   // ── Draw ────────────────────────────────────────────────────────────────
   function drawOverlay(message: string) {
-    ctx!.fillStyle = "rgba(0, 0, 0, 0.6)";
+    ctx!.fillStyle = theme.overlayScrim;
     ctx!.fillRect(0, 0, W, H);
-    ctx!.fillStyle = "#fff";
+    ctx!.fillStyle = theme.overlayText;
     ctx!.font = "bold 64px monospace";
     ctx!.textAlign = "center";
     ctx!.textBaseline = "middle";
@@ -537,10 +547,10 @@ export function createArkanoidEngine(
   }
 
   function drawPauseOverlay() {
-    ctx!.fillStyle = "rgba(0, 0, 0, 0.65)";
+    ctx!.fillStyle = theme.pauseScrim;
     ctx!.fillRect(0, 0, W, H);
 
-    ctx!.fillStyle = "#fff";
+    ctx!.fillStyle = theme.pauseText;
     ctx!.font = "bold 56px monospace";
     ctx!.textAlign = "center";
     ctx!.textBaseline = "middle";
@@ -552,14 +562,18 @@ export function createArkanoidEngine(
     for (let i = 0; i < 5; i++) {
       const bx = PAUSE_BTN_ROW_X + i * (PAUSE_BTN_W + PAUSE_BTN_GAP);
       const isActive = i + 1 === currentLevel;
-      ctx!.fillStyle = isActive ? "#f0c040" : "#444";
-      ctx!.strokeStyle = "#fff";
+      ctx!.fillStyle = isActive
+        ? theme.levelButtonActive
+        : theme.levelButtonIdle;
+      ctx!.strokeStyle = theme.levelButtonBorder;
       ctx!.lineWidth = 2;
       ctx!.beginPath();
       ctx!.roundRect(bx, PAUSE_BTN_Y, PAUSE_BTN_W, PAUSE_BTN_H, 6);
       ctx!.fill();
       ctx!.stroke();
-      ctx!.fillStyle = isActive ? "#000" : "#fff";
+      ctx!.fillStyle = isActive
+        ? theme.levelButtonActiveLabel
+        : theme.levelButtonIdleLabel;
       ctx!.font = "bold 20px monospace";
       ctx!.textAlign = "center";
       ctx!.textBaseline = "middle";
@@ -572,8 +586,14 @@ export function createArkanoidEngine(
   }
 
   function draw() {
-    ctx!.fillStyle = "#000";
+    ctx!.fillStyle = theme.background;
     ctx!.fillRect(0, 0, W, H);
+
+    // Marco interior del área de juego. En clasico/dark el color es #000
+    // sobre fondo #000: se dibuja pero no altera un solo píxel.
+    ctx!.strokeStyle = theme.grid;
+    ctx!.lineWidth = 2;
+    ctx!.strokeRect(1, 1, W - 2, H - 2);
 
     for (const block of blocks) {
       if (block.alive)
@@ -606,7 +626,7 @@ export function createArkanoidEngine(
     drawSprite(ctx!, "ball", ball.x, ball.y, ball.w, ball.h);
 
     if (gameState === "playing") {
-      ctx!.fillStyle = "#fff";
+      ctx!.fillStyle = theme.hudText;
       ctx!.font = "bold 18px monospace";
       ctx!.textAlign = "left";
       ctx!.textBaseline = "top";
@@ -698,5 +718,10 @@ export function createArkanoidEngine(
     canvas.removeEventListener("click", onClick);
   }
 
-  return { start, pause, resume, destroy };
+  function setTheme(nextTheme: ArkanoidTheme) {
+    theme = nextTheme;
+    if (ssLoaded) draw();
+  }
+
+  return { start, pause, resume, setTheme, destroy };
 }

@@ -1,4 +1,8 @@
 import { FRUIT_SPRITES } from "@/components/games/snake/sprites";
+import {
+  resolveSnakeTheme,
+  type SnakeTheme,
+} from "@/components/games/snake/themes";
 
 export interface SnakeCallbacks {
   onScoreChange: (score: number) => void;
@@ -9,6 +13,8 @@ export interface SnakeEngine {
   start: () => void;
   pause: () => void;
   resume: () => void;
+  /** Cambia la paleta y re-pinta el frame actual sin reiniciar la partida. */
+  setTheme: (theme: SnakeTheme) => void;
   destroy: () => void;
 }
 
@@ -46,9 +52,12 @@ function isOpposite(a: Direction, b: Direction): boolean {
 export function createSnakeEngine(
   canvas: HTMLCanvasElement,
   callbacks: SnakeCallbacks,
+  initialTheme?: SnakeTheme,
 ): SnakeEngine {
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("2D context not available on canvas");
+
+  let theme: SnakeTheme = initialTheme ?? resolveSnakeTheme();
 
   const fruitImage = new Image();
   fruitImage.src = "/games/snake/fruits.png";
@@ -66,6 +75,8 @@ export function createSnakeEngine(
 
   let lastEmittedScore = -1;
   let gameOverEmitted = false;
+  /** El estado de partida no existe hasta el primer initGame(). */
+  let ready = false;
 
   function emitHud() {
     if (score !== lastEmittedScore) {
@@ -170,12 +181,44 @@ export function createSnakeEngine(
   };
 
   // ── Draw ────────────────────────────────────────────────────────────────
+  function drawGrid() {
+    if (theme.grid === "transparent") return;
+    ctx!.strokeStyle = theme.grid;
+    ctx!.lineWidth = 1;
+    ctx!.beginPath();
+    for (let x = 1; x < COLS; x++) {
+      ctx!.moveTo(x * CELL + 0.5, 0);
+      ctx!.lineTo(x * CELL + 0.5, canvas.height);
+    }
+    for (let y = 1; y < ROWS; y++) {
+      ctx!.moveTo(0, y * CELL + 0.5);
+      ctx!.lineTo(canvas.width, y * CELL + 0.5);
+    }
+    ctx!.stroke();
+  }
+
+  function drawFruitHalo() {
+    if (theme.fruitHalo === "transparent") return;
+    ctx!.fillStyle = theme.fruitHalo;
+    ctx!.beginPath();
+    ctx!.arc(
+      fruit.x * CELL + CELL / 2,
+      fruit.y * CELL + CELL / 2,
+      CELL / 2 - 1,
+      0,
+      Math.PI * 2,
+    );
+    ctx!.fill();
+  }
+
   function draw() {
-    ctx!.fillStyle = "#000";
+    ctx!.fillStyle = theme.background;
     ctx!.fillRect(0, 0, canvas.width, canvas.height);
+    drawGrid();
 
     if (fruitImage.complete && fruitImage.naturalWidth > 0) {
       const sprite = FRUIT_SPRITES[fruitSprite];
+      drawFruitHalo();
       ctx!.drawImage(
         fruitImage,
         sprite.x,
@@ -191,7 +234,7 @@ export function createSnakeEngine(
 
     for (let i = 0; i < snake.length; i++) {
       const segment = snake[i];
-      ctx!.fillStyle = i === 0 ? "#7dffb0" : "#3ddc84";
+      ctx!.fillStyle = i === 0 ? theme.snakeHead : theme.snakeBody;
       ctx!.fillRect(
         segment.x * CELL + 1,
         segment.y * CELL + 1,
@@ -217,6 +260,7 @@ export function createSnakeEngine(
     gameOverEmitted = false;
     lastEmittedScore = -1;
     spawnFruit();
+    ready = true;
     emitHud();
   }
 
@@ -269,6 +313,13 @@ export function createSnakeEngine(
     if (rafId === null) rafId = requestAnimationFrame(loop);
   }
 
+  function setTheme(nextTheme: SnakeTheme) {
+    theme = nextTheme;
+    // Re-pinta el frame actual sin tocar el estado de la partida: cubre
+    // también los casos en pausa o game over, donde el loop no dibuja.
+    if (ready) draw();
+  }
+
   function destroy() {
     isPaused = true;
     if (rafId !== null) {
@@ -278,5 +329,5 @@ export function createSnakeEngine(
     window.removeEventListener("keydown", onKeyDown);
   }
 
-  return { start, pause, resume, destroy };
+  return { start, pause, resume, setTheme, destroy };
 }

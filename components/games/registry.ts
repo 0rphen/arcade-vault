@@ -5,6 +5,8 @@ import type {
   PlayableGameProps,
 } from "@/components/games/types";
 import { CAIDA_THEME_OPTIONS } from "@/components/games/caida/themes";
+import { ARKANOID_THEME_OPTIONS } from "@/components/games/arkanoid/themes";
+import { SNAKE_THEME_OPTIONS } from "@/components/games/snake/themes";
 
 export interface PlayableGameEntry {
   Canvas: ComponentType<PlayableGameProps>;
@@ -30,10 +32,12 @@ export const PLAYABLE_GAMES: Record<string, PlayableGameEntry> = {
       () => import("@/components/games/arkanoid/arkanoid-canvas"),
       { ssr: false },
     ),
+    themes: ARKANOID_THEME_OPTIONS,
   },
   snake: {
     Canvas: dynamic(() => import("@/components/games/snake/snake-canvas"), {
       ssr: false,
     }),
+    themes: SNAKE_THEME_OPTIONS,
   },
 };
