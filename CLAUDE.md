@@ -22,6 +22,8 @@ No test runner is configured yet.
 ## Agents
 
 - `game-planner` (`.claude/agents/game-planner.md`) decides which game should be added next to the catalog — weighs catalog gaps, technical fit (canvas 2D single-player contract), and available ports/assets in `references/`. Keeps a memory of past suggestions in `references/game_suggestions_todo.md` so proposals aren't repeated. Never writes specs or code — hands off to `/add-game <slug>`. Run it before `/add-game` when the next game isn't already decided.
+- `game-jam` (`.claude/agents/game-jam.md`) takes a free-text theme and, without back-and-forth, proposes 3 game concepts and writes 2 full candidate specs each (`variante-a.md`/`variante-b.md`, same `game-id`, different design approach) under `specs/game-jam/<game-id>/`. Follows the same technical contract as `/add-game` (`.claude/skills/add-game/reference.md`/`template.md`) but skips the section-by-section confirmation dialog. Never writes code or runs migrations. The user reviews the 6 candidate files and picks one to formalize via `/add-game`.
+- `skin-designer` (`.claude/agents/skin-designer.md`) designs and implements at least 3 visual themes (Neon, Retro, Clásico), each with a light and dark variant, for an already-implemented game. Inventories every hardcoded color in the target `engine.ts`, adds a `GameTheme` contract to `components/games/types.ts`, refactors the engine to read a palette instead of literals, and wires a persistent theme/mode selector into the HUD. Default stays `clasico`/`dark`, pixel-identical to the current render. Writes code directly — no spec, no `/spec-impl` handoff.
 
 ## Architecture
 

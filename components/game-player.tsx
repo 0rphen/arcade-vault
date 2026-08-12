@@ -6,11 +6,20 @@ import type { GameWithBest } from "@/lib/supabase/queries";
 import { appendScore, getStoredUser } from "@/lib/session";
 import { saveScoreAction } from "@/lib/actions/scores";
 import { PLAYABLE_GAMES } from "@/components/games/registry";
+import type { GameThemeMode } from "@/components/games/types";
+
+const themeStorageKey = (gameId: string) => `arcade-vault:${gameId}:theme`;
+const modeStorageKey = (gameId: string) => `arcade-vault:${gameId}:mode`;
 
 export default function GamePlayer({ game }: { game: GameWithBest }) {
   const router = useRouter();
   const playable = PLAYABLE_GAMES[game.id];
   const hasRealEngine = Boolean(playable);
+  const themeOptions = playable?.themes;
+  const [themeId, setThemeId] = useState<string>(
+    () => themeOptions?.[0]?.id ?? "clasico",
+  );
+  const [themeMode, setThemeMode] = useState<GameThemeMode>("dark");
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
   const [level, setLevel] = useState(1);
@@ -26,6 +35,30 @@ export default function GamePlayer({ game }: { game: GameWithBest }) {
     const user = getStoredUser();
     if (user) setName(user.name);
   }, []);
+
+  // Lee las preferencias persistidas (sistema externo) una vez montado:
+  // no se pueden leer en el render inicial sin desincronizar la hidratación.
+  useEffect(() => {
+    if (!themeOptions) return;
+    const storedTheme = window.localStorage.getItem(themeStorageKey(game.id));
+    if (storedTheme && themeOptions.some((t) => t.id === storedTheme)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setThemeId(storedTheme);
+    }
+    const storedMode = window.localStorage.getItem(modeStorageKey(game.id));
+    if (storedMode === "light" || storedMode === "dark") {
+      setThemeMode(storedMode);
+    }
+  }, [game.id, themeOptions]);
+
+  const chooseTheme = (id: string) => {
+    setThemeId(id);
+    window.localStorage.setItem(themeStorageKey(game.id), id);
+  };
+  const chooseMode = (mode: GameThemeMode) => {
+    setThemeMode(mode);
+    window.localStorage.setItem(modeStorageKey(game.id), mode);
+  };
 
   useEffect(() => {
     if (hasRealEngine || over || paused) return;
@@ -96,6 +129,35 @@ export default function GamePlayer({ game }: { game: GameWithBest }) {
           )}
         </div>
         <div className="hud-actions">
+          {themeOptions && (
+            <div className="hud-theme">
+              <span className="l">Tema</span>
+              <select
+                aria-label="Tema visual"
+                value={themeId}
+                onChange={(e) => chooseTheme(e.target.value)}
+              >
+                {themeOptions.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                aria-label={
+                  themeMode === "dark"
+                    ? "Cambiar a modo claro"
+                    : "Cambiar a modo oscuro"
+                }
+                onClick={() =>
+                  chooseMode(themeMode === "dark" ? "light" : "dark")
+                }
+              >
+                {themeMode === "dark" ? "◐ OSCURO" : "◑ CLARO"}
+              </button>
+            </div>
+          )}
           <button className="btn yellow" onClick={() => setPaused((p) => !p)}>
             {paused ? "REANUDAR" : "PAUSA"}
           </button>
@@ -123,6 +185,7 @@ export default function GamePlayer({ game }: { game: GameWithBest }) {
                 onLinesChange={setLines}
                 onTripleShotChange={setTripleShot}
                 onResumeRequested={() => setPaused(false)}
+                theme={themeOptions ? { themeId, mode: themeMode } : undefined}
                 onGameOver={(finalScore: number) => {
                   setScore(finalScore);
                   endGame();
