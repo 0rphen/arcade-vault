@@ -1,28 +1,36 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import {
   createSnakeEngine,
   type SnakeEngine,
 } from "@/components/games/snake/engine";
+import { resolveSnakeTheme } from "@/components/games/snake/themes";
 import type { PlayableGameProps } from "@/components/games/types";
 
 export default function SnakeCanvas({
   paused,
   onScoreChange,
   onGameOver,
+  theme,
 }: PlayableGameProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<SnakeEngine | null>(null);
+
+  const palette = useMemo(() => resolveSnakeTheme(theme), [theme]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const engine = createSnakeEngine(canvas, {
-      onScoreChange,
-      onGameOver,
-    });
+    const engine = createSnakeEngine(
+      canvas,
+      {
+        onScoreChange,
+        onGameOver,
+      },
+      palette,
+    );
     engineRef.current = engine;
     engine.start();
 
@@ -32,6 +40,10 @@ export default function SnakeCanvas({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    engineRef.current?.setTheme(palette);
+  }, [palette]);
 
   useEffect(() => {
     const engine = engineRef.current;
@@ -51,6 +63,7 @@ export default function SnakeCanvas({
         maxHeight: "100%",
         display: "block",
         margin: "0 auto",
+        background: palette.background,
       }}
     />
   );

@@ -1,3 +1,9 @@
+import {
+  resolveCaidaTheme,
+  type CaidaPieceColors,
+  type CaidaTheme,
+} from "@/components/games/caida/themes";
+
 // Port of references/started-games/03-tetris/game.js — encapsulated,
 // no module-level globals, so multiple mount/unmount cycles stay isolated.
 
@@ -12,6 +18,8 @@ export interface TetrisEngine {
   start: () => void;
   pause: () => void;
   resume: () => void;
+  /** Cambia la paleta activa y repinta el frame actual, sin reiniciar la partida. */
+  setTheme: (theme: CaidaTheme) => void;
   destroy: () => void;
 }
 
@@ -20,17 +28,22 @@ const ROWS = 20;
 const BLOCK = 30;
 const NEXT_BLOCK = 30;
 
-const COLORS: (string | null)[] = [
-  null,
-  "#4dd0e1", // I - cyan
-  "#ffd54f", // O - yellow
-  "#ba68c8", // T - purple
-  "#81c784", // S - green
-  "#e57373", // Z - red
-  "#90caf9", // J - pale blue
-  "#ffb74d", // L - orange
-  "#9e9e9e", // N - tuerca (gris metálico)
+/** Índice de pieza (1..8) → slot de paleta. Ver COLORS original en el port. */
+const PIECE_SLOTS: (keyof CaidaPieceColors)[] = [
+  "i", // 1 - I
+  "o", // 2 - O
+  "t", // 3 - T
+  "s", // 4 - S
+  "z", // 5 - Z
+  "j", // 6 - J
+  "l", // 7 - L
+  "n", // 8 - N (tuerca)
 ];
+
+function pieceColor(theme: CaidaTheme, colorIndex: number): string | null {
+  const slot = PIECE_SLOTS[colorIndex - 1];
+  return slot ? theme.pieces[slot] : null;
+}
 
 const PIECES: (number[][] | null)[] = [
   null,
@@ -148,10 +161,13 @@ export function createTetrisEngine(
   boardCanvas: HTMLCanvasElement,
   nextCanvas: HTMLCanvasElement,
   callbacks: TetrisCallbacks,
+  initialTheme?: CaidaTheme,
 ): TetrisEngine {
   const ctx = boardCanvas.getContext("2d");
   const nextCtx = nextCanvas.getContext("2d");
   if (!ctx || !nextCtx) throw new Error("2D context not available on canvas");
+
+  let theme: CaidaTheme = initialTheme ?? resolveCaidaTheme();
 
   // ── Input ───────────────────────────────────────────────────────────────
   const onKeyDown = (e: KeyboardEvent) => {
@@ -297,17 +313,18 @@ export function createTetrisEngine(
     alpha?: number,
   ) {
     if (!colorIndex) return;
-    const color = COLORS[colorIndex];
+    const color = pieceColor(theme, colorIndex);
+    if (!color) return;
     context.globalAlpha = alpha ?? 1;
-    context.fillStyle = color!;
+    context.fillStyle = color;
     context.fillRect(x * size + 1, y * size + 1, size - 2, size - 2);
-    context.fillStyle = "rgba(255,255,255,0.12)";
+    context.fillStyle = theme.blockHighlight;
     context.fillRect(x * size + 1, y * size + 1, size - 2, 4);
     context.globalAlpha = 1;
   }
 
   function drawGrid() {
-    ctx!.strokeStyle = "rgba(255,255,255,0.06)";
+    ctx!.strokeStyle = theme.grid;
     ctx!.lineWidth = 0.5;
     for (let c = 1; c < COLS; c++) {
       ctx!.beginPath();
@@ -324,7 +341,7 @@ export function createTetrisEngine(
   }
 
   function draw() {
-    ctx!.fillStyle = "#000";
+    ctx!.fillStyle = theme.background;
     ctx!.fillRect(0, 0, boardCanvas.width, boardCanvas.height);
     drawGrid();
 
@@ -341,7 +358,7 @@ export function createTetrisEngine(
             gy + r,
             current.shape[r][c],
             BLOCK,
-            0.2,
+            theme.ghostAlpha,
           );
 
     for (let r = 0; r < current.shape.length; r++)
@@ -356,7 +373,7 @@ export function createTetrisEngine(
   }
 
   function drawNext() {
-    nextCtx!.fillStyle = "#000";
+    nextCtx!.fillStyle = theme.nextBackground;
     nextCtx!.fillRect(0, 0, nextCanvas.width, nextCanvas.height);
     const shape = next.shape;
     const offX = Math.floor((4 - shape[0].length) / 2);
@@ -387,6 +404,7 @@ export function createTetrisEngine(
   let lastTime: number | null = null;
   let rafId: number | null = null;
   let isPaused = false;
+  let started = false;
 
   function loop(ts: number) {
     if (isPaused) return;
@@ -414,6 +432,7 @@ export function createTetrisEngine(
   function start() {
     window.addEventListener("keydown", onKeyDown);
     initGame();
+    started = true;
     isPaused = false;
     lastTime = null;
     if (rafId === null) rafId = requestAnimationFrame(loop);
@@ -444,5 +463,12 @@ export function createTetrisEngine(
     window.removeEventListener("keydown", onKeyDown);
   }
 
-  return { start, pause, resume, destroy };
+  function setTheme(nextTheme: CaidaTheme) {
+    theme = nextTheme;
+    if (!started) return;
+    draw();
+    drawNext();
+  }
+
+  return { start, pause, resume, setTheme, destroy };
 }

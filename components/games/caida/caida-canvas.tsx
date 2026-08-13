@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import {
   createTetrisEngine,
   type TetrisEngine,
 } from "@/components/games/caida/engine";
+import { resolveCaidaTheme } from "@/components/games/caida/themes";
 import type { PlayableGameProps } from "@/components/games/types";
 
 export default function CaidaCanvas({
@@ -13,10 +14,13 @@ export default function CaidaCanvas({
   onLinesChange,
   onLevelChange,
   onGameOver,
+  theme,
 }: PlayableGameProps) {
   const boardCanvasRef = useRef<HTMLCanvasElement>(null);
   const nextCanvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<TetrisEngine | null>(null);
+
+  const palette = useMemo(() => resolveCaidaTheme(theme), [theme]);
 
   useEffect(() => {
     const boardCanvas = boardCanvasRef.current;
@@ -24,12 +28,17 @@ export default function CaidaCanvas({
     if (!boardCanvas || !nextCanvas) return;
 
     const noop = () => {};
-    const engine = createTetrisEngine(boardCanvas, nextCanvas, {
-      onScoreChange,
-      onLinesChange: onLinesChange ?? noop,
-      onLevelChange: onLevelChange ?? noop,
-      onGameOver,
-    });
+    const engine = createTetrisEngine(
+      boardCanvas,
+      nextCanvas,
+      {
+        onScoreChange,
+        onLinesChange: onLinesChange ?? noop,
+        onLevelChange: onLevelChange ?? noop,
+        onGameOver,
+      },
+      palette,
+    );
     engineRef.current = engine;
     engine.start();
 
@@ -41,6 +50,10 @@ export default function CaidaCanvas({
   }, []);
 
   useEffect(() => {
+    engineRef.current?.setTheme(palette);
+  }, [palette]);
+
+  useEffect(() => {
     const engine = engineRef.current;
     if (!engine) return;
     if (paused) engine.pause();
@@ -48,7 +61,14 @@ export default function CaidaCanvas({
   }, [paused]);
 
   return (
-    <div style={{ position: "relative", width: "100%", height: "100%" }}>
+    <div
+      style={{
+        position: "relative",
+        width: "100%",
+        height: "100%",
+        background: palette.background,
+      }}
+    >
       <canvas
         ref={boardCanvasRef}
         width={300}
