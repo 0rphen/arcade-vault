@@ -221,6 +221,7 @@ export default function GamePlayer({ game }: { game: GameWithBest }) {
           disabled={paused}
           paused={paused}
           onPauseToggle={() => setPaused((p) => !p)}
+          theme={themeOptions ? { themeId, mode: themeMode } : undefined}
         />
       )}
 

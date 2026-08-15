@@ -2,6 +2,7 @@
 
 import type { PointerEvent as ReactPointerEvent } from "react";
 import type { TouchControlsConfig } from "@/components/games/touch-controls-config";
+import type { GameThemeSelection } from "@/components/games/types";
 
 export interface TouchControlsProps {
   config: TouchControlsConfig;
@@ -9,10 +10,21 @@ export interface TouchControlsProps {
   disabled: boolean;
   onPauseToggle: () => void;
   paused: boolean;
+  /** Tema activo del juego. Ausente → "clasico"/"dark". */
+  theme?: GameThemeSelection;
 }
 
+const CODE_TO_KEY: Record<string, string> = {
+  ArrowUp: "ArrowUp",
+  ArrowDown: "ArrowDown",
+  ArrowLeft: "ArrowLeft",
+  ArrowRight: "ArrowRight",
+  Space: " ",
+};
+
 function dispatchKey(code: string, type: "keydown" | "keyup") {
-  window.dispatchEvent(new KeyboardEvent(type, { code, bubbles: true }));
+  const key = CODE_TO_KEY[code] ?? code;
+  window.dispatchEvent(new KeyboardEvent(type, { code, key, bubbles: true }));
 }
 
 export default function TouchControls({
@@ -20,6 +32,7 @@ export default function TouchControls({
   disabled,
   onPauseToggle,
   paused,
+  theme,
 }: TouchControlsProps) {
   const press = (code: string) => (e: ReactPointerEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -31,90 +44,139 @@ export default function TouchControls({
   const release =
     (code: string) => (e: ReactPointerEvent<HTMLButtonElement>) => {
       e.preventDefault();
-      if (disabled) return;
       dispatchKey(code, "keyup");
     };
 
-  const { dpad, action } = config;
+  const { dpad, buttons } = config;
+  const themeId = theme?.themeId ?? "clasico";
+  const themeMode = theme?.mode ?? "dark";
 
   return (
-    <div className="touch-controls">
-      <div className="touch-dpad">
-        {dpad.up && (
-          <button
-            type="button"
-            className="touch-btn touch-dpad-up"
-            aria-label="Arriba"
-            onPointerDown={press(dpad.up)}
-            onPointerUp={release(dpad.up)}
-            onPointerCancel={release(dpad.up)}
-            onPointerLeave={release(dpad.up)}
-          >
-            ▲
-          </button>
-        )}
-        {dpad.left && (
-          <button
-            type="button"
-            className="touch-btn touch-dpad-left"
-            aria-label="Izquierda"
-            onPointerDown={press(dpad.left)}
-            onPointerUp={release(dpad.left)}
-            onPointerCancel={release(dpad.left)}
-            onPointerLeave={release(dpad.left)}
-          >
-            ◀
-          </button>
-        )}
-        {dpad.right && (
-          <button
-            type="button"
-            className="touch-btn touch-dpad-right"
-            aria-label="Derecha"
-            onPointerDown={press(dpad.right)}
-            onPointerUp={release(dpad.right)}
-            onPointerCancel={release(dpad.right)}
-            onPointerLeave={release(dpad.right)}
-          >
-            ▶
-          </button>
-        )}
-        {dpad.down && (
-          <button
-            type="button"
-            className="touch-btn touch-dpad-down"
-            aria-label="Abajo"
-            onPointerDown={press(dpad.down)}
-            onPointerUp={release(dpad.down)}
-            onPointerCancel={release(dpad.down)}
-            onPointerLeave={release(dpad.down)}
-          >
-            ▼
-          </button>
+    <div
+      className="gp"
+      role="group"
+      aria-label="Gamepad"
+      data-gp-theme={themeId}
+      data-gp-mode={themeMode}
+    >
+      <div className="gp-body">
+        <div className="gp-col gp-col-left">
+          <div className="gp-dpad" aria-label="D-pad">
+            {dpad.up && (
+              <button
+                type="button"
+                disabled={disabled}
+                className={`dp dp-up${disabled ? " gp-off" : ""}`}
+                aria-label="Arriba"
+                onPointerDown={press(dpad.up)}
+                onPointerUp={release(dpad.up)}
+                onPointerCancel={release(dpad.up)}
+                onPointerLeave={release(dpad.up)}
+              >
+                <svg className="dp-arrow" viewBox="0 0 24 24">
+                  <path d="M12 4 L20 16 L4 16 Z" fill="currentColor" />
+                </svg>
+              </button>
+            )}
+            {dpad.right && (
+              <button
+                type="button"
+                disabled={disabled}
+                className={`dp dp-right${disabled ? " gp-off" : ""}`}
+                aria-label="Derecha"
+                onPointerDown={press(dpad.right)}
+                onPointerUp={release(dpad.right)}
+                onPointerCancel={release(dpad.right)}
+                onPointerLeave={release(dpad.right)}
+              >
+                <svg className="dp-arrow" viewBox="0 0 24 24">
+                  <path d="M8 4 L20 12 L8 20 Z" fill="currentColor" />
+                </svg>
+              </button>
+            )}
+            {dpad.down && (
+              <button
+                type="button"
+                disabled={disabled}
+                className={`dp dp-down${disabled ? " gp-off" : ""}`}
+                aria-label="Abajo"
+                onPointerDown={press(dpad.down)}
+                onPointerUp={release(dpad.down)}
+                onPointerCancel={release(dpad.down)}
+                onPointerLeave={release(dpad.down)}
+              >
+                <svg className="dp-arrow" viewBox="0 0 24 24">
+                  <path d="M4 8 L20 8 L12 20 Z" fill="currentColor" />
+                </svg>
+              </button>
+            )}
+            {dpad.left && (
+              <button
+                type="button"
+                disabled={disabled}
+                className={`dp dp-left${disabled ? " gp-off" : ""}`}
+                aria-label="Izquierda"
+                onPointerDown={press(dpad.left)}
+                onPointerUp={release(dpad.left)}
+                onPointerCancel={release(dpad.left)}
+                onPointerLeave={release(dpad.left)}
+              >
+                <svg className="dp-arrow" viewBox="0 0 24 24">
+                  <path d="M16 4 L16 20 L4 12 Z" fill="currentColor" />
+                </svg>
+              </button>
+            )}
+            <div className="dp-hub" aria-hidden="true">
+              <span className="dp-hub-gem"></span>
+            </div>
+          </div>
+        </div>
+
+        {buttons && (buttons.a || buttons.b) && (
+          <div className="gp-col gp-col-right">
+            <div className="gp-actions">
+              {buttons.b && (
+                <button
+                  type="button"
+                  disabled={disabled}
+                  className={`ab b${disabled ? " gp-off" : ""}`}
+                  aria-label={buttons.b.label}
+                  onPointerDown={press(buttons.b.code)}
+                  onPointerUp={release(buttons.b.code)}
+                  onPointerCancel={release(buttons.b.code)}
+                  onPointerLeave={release(buttons.b.code)}
+                >
+                  <span className="ab-ring"></span>
+                  <span className="ab-letter">B</span>
+                </button>
+              )}
+              {buttons.a && (
+                <button
+                  type="button"
+                  disabled={disabled}
+                  className={`ab a${disabled ? " gp-off" : ""}`}
+                  aria-label={buttons.a.label}
+                  onPointerDown={press(buttons.a.code)}
+                  onPointerUp={release(buttons.a.code)}
+                  onPointerCancel={release(buttons.a.code)}
+                  onPointerLeave={release(buttons.a.code)}
+                >
+                  <span className="ab-ring"></span>
+                  <span className="ab-letter">A</span>
+                </button>
+              )}
+            </div>
+          </div>
         )}
       </div>
 
-      {action && (
-        <button
-          type="button"
-          className="touch-btn touch-action"
-          aria-label={action.label}
-          onPointerDown={press(action.code)}
-          onPointerUp={release(action.code)}
-          onPointerCancel={release(action.code)}
-          onPointerLeave={release(action.code)}
-        >
-          {action.label}
-        </button>
-      )}
-
       <button
         type="button"
-        className="touch-btn touch-pause"
+        className="gp-start"
         aria-label={paused ? "Reanudar" : "Pausa"}
         onClick={onPauseToggle}
       >
-        {paused ? "▶" : "❚❚"}
+        START
       </button>
     </div>
   );
