@@ -1156,6 +1156,91 @@ a {
   box-shadow: 0 0 6px var(--green);
 }
 
+.touch-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-top: 18px;
+  padding: 16px 20px;
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+}
+.touch-dpad {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, 44px);
+  grid-template-rows: repeat(3, 44px);
+  gap: 4px;
+  place-items: center;
+}
+.touch-dpad-up {
+  grid-column: 2;
+  grid-row: 1;
+}
+.touch-dpad-left {
+  grid-column: 1;
+  grid-row: 2;
+}
+.touch-dpad-right {
+  grid-column: 3;
+  grid-row: 2;
+}
+.touch-dpad-down {
+  grid-column: 2;
+  grid-row: 3;
+}
+.touch-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  font-family: var(--pixel);
+  font-size: 14px;
+  color: var(--cyan);
+  background: var(--bg-3);
+  border: 1px solid var(--line-2);
+  cursor: pointer;
+  user-select: none;
+  touch-action: none;
+}
+.touch-btn:active {
+  color: var(--bg);
+  background: var(--cyan);
+  border-color: var(--cyan);
+  box-shadow: 0 0 10px var(--cyan);
+}
+.touch-action {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-align: center;
+  color: var(--yellow);
+  border-color: var(--yellow);
+}
+.touch-action:active {
+  color: var(--bg);
+  background: var(--yellow);
+  border-color: var(--yellow);
+  box-shadow: 0 0 10px var(--yellow);
+}
+.touch-pause {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  color: var(--magenta);
+  border-color: var(--magenta);
+}
+.touch-pause:active {
+  color: var(--bg);
+  background: var(--magenta);
+  border-color: var(--magenta);
+  box-shadow: 0 0 10px var(--magenta);
+}
+
 /* fake in-screen game */
 .game-arena {
   position: absolute;

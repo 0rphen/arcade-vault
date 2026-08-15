@@ -7,6 +7,8 @@ import { appendScore, getStoredUser } from "@/lib/session";
 import { saveScoreAction } from "@/lib/actions/scores";
 import { PLAYABLE_GAMES } from "@/components/games/registry";
 import type { GameThemeMode } from "@/components/games/types";
+import TouchControls from "@/components/games/touch-controls";
+import { TOUCH_CONTROLS_CONFIG } from "@/components/games/touch-controls-config";
 
 const themeStorageKey = (gameId: string) => `arcade-vault:${gameId}:theme`;
 const modeStorageKey = (gameId: string) => `arcade-vault:${gameId}:mode`;
@@ -16,6 +18,8 @@ export default function GamePlayer({ game }: { game: GameWithBest }) {
   const playable = PLAYABLE_GAMES[game.id];
   const hasRealEngine = Boolean(playable);
   const themeOptions = playable?.themes;
+  const touchConfig = TOUCH_CONTROLS_CONFIG[game.id];
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
   const [themeId, setThemeId] = useState<string>(
     () => themeOptions?.[0]?.id ?? "clasico",
   );
@@ -34,6 +38,10 @@ export default function GamePlayer({ game }: { game: GameWithBest }) {
   useEffect(() => {
     const user = getStoredUser();
     if (user) setName(user.name);
+  }, []);
+
+  useEffect(() => {
+    setIsTouchDevice(window.matchMedia("(pointer: coarse)").matches);
   }, []);
 
   // Lee las preferencias persistidas (sistema externo) una vez montado:
@@ -129,35 +137,6 @@ export default function GamePlayer({ game }: { game: GameWithBest }) {
           )}
         </div>
         <div className="hud-actions">
-          {themeOptions && (
-            <div className="hud-theme">
-              <span className="l">Tema</span>
-              <select
-                aria-label="Tema visual"
-                value={themeId}
-                onChange={(e) => chooseTheme(e.target.value)}
-              >
-                {themeOptions.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                aria-label={
-                  themeMode === "dark"
-                    ? "Cambiar a modo claro"
-                    : "Cambiar a modo oscuro"
-                }
-                onClick={() =>
-                  chooseMode(themeMode === "dark" ? "light" : "dark")
-                }
-              >
-                {themeMode === "dark" ? "◐ OSCURO" : "◑ CLARO"}
-              </button>
-            </div>
-          )}
           <button className="btn yellow" onClick={() => setPaused((p) => !p)}>
             {paused ? "REANUDAR" : "PAUSA"}
           </button>
@@ -235,6 +214,43 @@ export default function GamePlayer({ game }: { game: GameWithBest }) {
           <span>CARGA · 1MB</span>
         </div>
       </div>
+
+      {touchConfig && isTouchDevice && (
+        <TouchControls
+          config={touchConfig}
+          disabled={paused}
+          paused={paused}
+          onPauseToggle={() => setPaused((p) => !p)}
+        />
+      )}
+
+      {themeOptions && (
+        <div className="hud-theme">
+          <span className="l">Tema</span>
+          <select
+            aria-label="Tema visual"
+            value={themeId}
+            onChange={(e) => chooseTheme(e.target.value)}
+          >
+            {themeOptions.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            aria-label={
+              themeMode === "dark"
+                ? "Cambiar a modo claro"
+                : "Cambiar a modo oscuro"
+            }
+            onClick={() => chooseMode(themeMode === "dark" ? "light" : "dark")}
+          >
+            {themeMode === "dark" ? "◐ OSCURO" : "◑ CLARO"}
+          </button>
+        </div>
+      )}
 
       {over && (
         <div className="modal-bd">
