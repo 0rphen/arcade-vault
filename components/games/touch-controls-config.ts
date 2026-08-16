@@ -44,4 +44,12 @@ export const TOUCH_CONTROLS_CONFIG: Record<string, TouchControlsConfig> = {
       right: "ArrowRight",
     },
   },
+  frogger: {
+    dpad: {
+      up: "ArrowUp",
+      down: "ArrowDown",
+      left: "ArrowLeft",
+      right: "ArrowRight",
+    },
+  },
 };

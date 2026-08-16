@@ -153,7 +153,7 @@ export default function GamePlayer({ game }: { game: GameWithBest }) {
       </div>
 
       <div className="crt">
-        <div className="crt-screen">
+        <div className="crt-screen" data-game={game.id}>
           {playable ? (
             !over && (
               <playable.Canvas

@@ -18,12 +18,15 @@ El selector vive en el HUD compartido (`components/game-player.tsx`, clase `.hud
 | `caida`    | `caida`     | TETRIS   | 13 (ya tematizados)                                             | ✅ implementado — Clásico / Neón / Retro × dark+light |
 | `arkanoid` | `arkanoid`  | ARKANOID | 11 (ya tematizados; ladrillos/pala/bola/explosiones por sprite) | ✅ implementado — Clásico / Neón / Retro × dark+light |
 | `snake`    | `snake`     | SNAKE    | 3 (ya tematizados; frutas por sprite)                           | ✅ implementado — Clásico / Neón / Retro × dark+light |
+| `frogger`  | `frogger`   | FROGGER  | 24 (ya tematizados; sin sprites)                                | ✅ implementado — Clásico / Neón / Retro × dark+light |
 
 `caida`: slots en `components/games/caida/themes.ts` (`background`, `nextBackground`, `grid`, `blockHighlight`, `ghostAlpha`, `pieces.{i,o,t,s,z,j,l,n}`). Sin sprites — todas sus superficies son color plano y quedan dentro de la paleta. `clasico`/`dark` es hex por hex el render original.
 
 `snake`: slots en `components/games/snake/themes.ts` (`background`, `grid`, `snakeHead`, `snakeBody`, `fruitHalo`). Reutiliza el contrato `GameTheme` ya existente (no se extendió `types.ts`). Las frutas son sprites del atlas `public/games/snake/fruits.png` (`sprites.ts`) y **quedan fuera de la paleta**: sólo se les añade un halo detrás (`fruitHalo`) para legibilidad en modo claro. `clasico`/`dark` es hex por hex el render original (`#000`, cabeza `#7dffb0`, cuerpo `#3ddc84`, sin rejilla ni halo: ambos slots valen `"transparent"` y el engine los omite).
 
 `arkanoid`: slots en `components/games/arkanoid/themes.ts` (`background`, `grid`, `hudText`, `overlayScrim`, `overlayText`, `pauseScrim`, `pauseText`, `levelButtonActive`, `levelButtonIdle`, `levelButtonBorder`, `levelButtonActiveLabel`, `levelButtonIdleLabel`). Reutiliza el contrato `GameTheme` ya existente (no se extendió `types.ts`). Ladrillos, pala, bola y explosiones vienen de `/sprites/spritesheet-breakout.png` y **quedan fuera de la paleta** (no re-tematizables sin assets nuevos). `grid` se usa como marco interior del área de juego y vale `#000` en `clasico`/`dark`, así que el render por defecto es idéntico píxel a píxel al original.
+
+`frogger`: slots en `components/games/frogger/themes.ts` (`background`, `grid`, `goalZone`, `river`, `safe`, `road`, `cars[3]`, `carWheel`, `truckBody`, `truckCab`, `log`, `logGrain`, `turtleShell`, `turtleShellInner`, `turtleSubmerged`, `goalSlot`, `goalBorder`, `goalFilled`, `frog`, `frogEye`, `frogPupil`, `timerHigh/Mid/Low`, `hudText`, `hudTextShadow`, `hudLife`). Reutiliza el contrato `GameTheme` ya existente (no se extendió `types.ts`). Sin sprites: todas las superficies son color plano y están dentro de la paleta. `grid` se usa para separadores de carril y vale `"transparent"` en `clasico`/`dark`, así que el render por defecto es hex por hex el original.
 
 ## Juegos solo-catálogo (sin engine, no aplican todavía)
 

@@ -807,21 +807,42 @@ a {
   text-shadow: 0 0 8px var(--yellow);
 }
 
-.cover-rana {
-  background: linear-gradient(180deg, #001f2a, #0a0a18);
+.cover-frogger {
+  background: linear-gradient(
+    180deg,
+    #001f3a 0%,
+    #001f3a 34%,
+    #0a0a18 34%,
+    #0a0a18 78%,
+    #001f0f 78%,
+    #001f0f 100%
+  );
 }
-.cover-rana::after {
+.cover-frogger::after {
   content: "";
   position: absolute;
   inset: 0;
   background:
+    repeating-linear-gradient(90deg, var(--cyan) 0 10px, transparent 10px 26px)
+      0 14% / 100% 3px no-repeat,
+    repeating-linear-gradient(90deg, var(--cyan) 0 14px, transparent 14px 34px)
+      0 24% / 100% 3px no-repeat,
     repeating-linear-gradient(
-      0deg,
-      rgba(0, 245, 255, 0.18) 0 20px,
-      transparent 20px 40px
-    ),
-    radial-gradient(circle at 50% 55%, var(--green) 0 14px, transparent 15px);
-  filter: drop-shadow(0 0 8px rgba(0, 255, 136, 0.5));
+        90deg,
+        var(--yellow) 0 16px,
+        transparent 16px 32px
+      )
+      0 46% / 100% 3px no-repeat,
+    repeating-linear-gradient(
+        90deg,
+        var(--yellow) 0 16px,
+        transparent 16px 32px
+      )
+      0 62% / 100% 3px no-repeat,
+    radial-gradient(circle at 50% 88%, var(--green) 0 12px, transparent 13px),
+    radial-gradient(circle at 44% 85%, #0a0a18 0 2px, transparent 3px),
+    radial-gradient(circle at 56% 85%, #0a0a18 0 2px, transparent 3px);
+  filter: drop-shadow(0 0 6px rgba(0, 255, 136, 0.55));
 }
 
 .cover-duelo {
@@ -1096,6 +1117,11 @@ a {
   box-shadow:
     inset 0 0 60px rgba(0, 0, 0, 0.9),
     inset 0 0 20px rgba(0, 245, 255, 0.15);
+}
+/* Frogger dibuja un tablero de 640×560 (8/7): con el 4/3 por defecto la
+   pantalla recorta en alto y el canvas se renderiza achatado. */
+.crt-screen[data-game="frogger"] {
+  aspect-ratio: 8 / 7;
 }
 .crt-screen::after {
   content: "";
