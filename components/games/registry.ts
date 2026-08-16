@@ -7,6 +7,7 @@ import type {
 import { CAIDA_THEME_OPTIONS } from "@/components/games/caida/themes";
 import { ARKANOID_THEME_OPTIONS } from "@/components/games/arkanoid/themes";
 import { SNAKE_THEME_OPTIONS } from "@/components/games/snake/themes";
+import { FROGGER_THEME_OPTIONS } from "@/components/games/frogger/themes";
 
 export interface PlayableGameEntry {
   Canvas: ComponentType<PlayableGameProps>;
@@ -39,5 +40,11 @@ export const PLAYABLE_GAMES: Record<string, PlayableGameEntry> = {
       ssr: false,
     }),
     themes: SNAKE_THEME_OPTIONS,
+  },
+  frogger: {
+    Canvas: dynamic(() => import("@/components/games/frogger/frogger-canvas"), {
+      ssr: false,
+    }),
+    themes: FROGGER_THEME_OPTIONS,
   },
 };
