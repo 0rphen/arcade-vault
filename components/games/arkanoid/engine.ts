@@ -1,7 +1,9 @@
 // Port of references/started-games/04-arkanoid/game.js + levels.js —
 // encapsulated, no module-level game state, so multiple mount/unmount cycles
 // stay isolated. Stateless assets (audio pool below) are the one deliberate
-// exception: they hold no game state and are expensive to recreate per mount.
+// exception: they hold no game state and are expensive to recreate per mount,
+// but they're still built lazily on first use, not eagerly at module scope —
+// `Audio` doesn't exist during SSR/prerendering.
 
 import {
   resolveArkanoidTheme,
@@ -31,10 +33,10 @@ const H = 600;
 // evita que la bola atraviese bloques tras un frame largo (pestaña oculta, GC)
 const MAX_DT = 0.05;
 
-// Pool de <audio> a nivel de módulo: evita cloneNode() (recarga/decodifica
-// la fuente de nuevo) en cada disparo de SFX y recrear los Audio() base en
-// cada montaje del canvas. Round-robin sobre unas pocas instancias precreadas
-// para soportar rebotes solapados sin cortar el sonido anterior.
+// Pool de <audio>: evita cloneNode() (recarga/decodifica la fuente de nuevo)
+// en cada disparo de SFX y recrear los Audio() base en cada montaje del
+// canvas. Round-robin sobre unas pocas instancias precreadas para soportar
+// rebotes solapados sin cortar el sonido anterior.
 const AUDIO_POOL_SIZE = 4;
 
 interface AudioPool {
@@ -56,8 +58,23 @@ function playFromPool(pool: AudioPool) {
   clip.play().catch(() => {});
 }
 
-const bounceSoundPool = createAudioPool("/sounds/ball-bounce.mp3");
-const breakSoundPool = createAudioPool("/sounds/break-sound.mp3");
+// Memoizados en el primer uso (no a nivel de módulo): `Audio` no existe
+// durante el prerender/SSR, y esta función solo se invoca desde dentro de
+// createArkanoidEngine(), que a su vez solo corre en un useEffect de cliente.
+let bounceSoundPool: AudioPool | null = null;
+let breakSoundPool: AudioPool | null = null;
+
+function getBounceSoundPool(): AudioPool {
+  if (!bounceSoundPool)
+    bounceSoundPool = createAudioPool("/sounds/ball-bounce.mp3");
+  return bounceSoundPool;
+}
+
+function getBreakSoundPool(): AudioPool {
+  if (!breakSoundPool)
+    breakSoundPool = createAudioPool("/sounds/break-sound.mp3");
+  return breakSoundPool;
+}
 
 const PADDLE_SPEED = 400;
 const BLOCK_COLS = 10;
@@ -491,17 +508,17 @@ export function createArkanoidEngine(
     if (ball.x <= 0) {
       ball.x = 0;
       ball.vx = Math.abs(ball.vx);
-      playFromPool(bounceSoundPool);
+      playFromPool(getBounceSoundPool());
     }
     if (ball.x + ball.w >= W) {
       ball.x = W - ball.w;
       ball.vx = -Math.abs(ball.vx);
-      playFromPool(bounceSoundPool);
+      playFromPool(getBounceSoundPool());
     }
     if (ball.y <= 0) {
       ball.y = 0;
       ball.vy = Math.abs(ball.vy);
-      playFromPool(bounceSoundPool);
+      playFromPool(getBounceSoundPool());
     }
 
     if (
@@ -513,7 +530,7 @@ export function createArkanoidEngine(
     ) {
       ball.y = paddle.y - ball.h;
       ball.vy = -Math.abs(ball.vy);
-      playFromPool(bounceSoundPool);
+      playFromPool(getBounceSoundPool());
     }
 
     for (const block of blocks) {
@@ -530,7 +547,7 @@ export function createArkanoidEngine(
         });
         score += 10;
         ball.vy = -ball.vy;
-        playFromPool(breakSoundPool);
+        playFromPool(getBreakSoundPool());
         if (blocks.every((b) => !b.alive)) {
           if (currentLevel < 5) loadLevel(currentLevel + 1);
           else gameState = "win";

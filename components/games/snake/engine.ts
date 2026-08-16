@@ -30,10 +30,20 @@ const POINTS_PER_FRUIT = 10;
 
 const FRUIT_KEYS = Object.keys(FRUIT_SPRITES);
 
-// Un solo Image a nivel de módulo, compartido por todas las instancias del
+// Memoizado en el primer uso, compartido por todas las instancias del
 // engine: evita recargar el sprite en cada montaje/desmontaje del canvas.
-const fruitImage = new Image();
-fruitImage.src = "/games/snake/fruits.png";
+// No a nivel de módulo: `Image` no existe durante el prerender/SSR, y esta
+// función solo se invoca desde createSnakeEngine(), que a su vez solo corre
+// en un useEffect de cliente.
+let cachedFruitImage: HTMLImageElement | null = null;
+
+function getFruitImage(): HTMLImageElement {
+  if (!cachedFruitImage) {
+    cachedFruitImage = new Image();
+    cachedFruitImage.src = "/games/snake/fruits.png";
+  }
+  return cachedFruitImage;
+}
 
 interface Point {
   x: number;
@@ -61,6 +71,8 @@ export function createSnakeEngine(
 ): SnakeEngine {
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("2D context not available on canvas");
+
+  const fruitImg = getFruitImage();
 
   let theme: SnakeTheme = initialTheme ?? resolveSnakeTheme();
 
@@ -218,11 +230,11 @@ export function createSnakeEngine(
     ctx!.fillRect(0, 0, canvas.width, canvas.height);
     drawGrid();
 
-    if (fruitImage.complete && fruitImage.naturalWidth > 0) {
+    if (fruitImg.complete && fruitImg.naturalWidth > 0) {
       const sprite = FRUIT_SPRITES[fruitSprite];
       drawFruitHalo();
       ctx!.drawImage(
-        fruitImage,
+        fruitImg,
         sprite.x,
         sprite.y,
         sprite.w,
