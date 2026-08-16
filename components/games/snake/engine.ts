@@ -30,6 +30,11 @@ const POINTS_PER_FRUIT = 10;
 
 const FRUIT_KEYS = Object.keys(FRUIT_SPRITES);
 
+// Un solo Image a nivel de módulo, compartido por todas las instancias del
+// engine: evita recargar el sprite en cada montaje/desmontaje del canvas.
+const fruitImage = new Image();
+fruitImage.src = "/games/snake/fruits.png";
+
 interface Point {
   x: number;
   y: number;
@@ -58,9 +63,6 @@ export function createSnakeEngine(
   if (!ctx) throw new Error("2D context not available on canvas");
 
   let theme: SnakeTheme = initialTheme ?? resolveSnakeTheme();
-
-  const fruitImage = new Image();
-  fruitImage.src = "/games/snake/fruits.png";
 
   // ── Estado ──────────────────────────────────────────────────────────────
   let snake: Point[];
@@ -268,6 +270,7 @@ export function createSnakeEngine(
   let lastTime: number | null = null;
   let rafId: number | null = null;
   let isPaused = false;
+  let autoPaused = false;
   let accum = 0;
 
   function loop(ts: number) {
@@ -290,6 +293,7 @@ export function createSnakeEngine(
 
   function start() {
     window.addEventListener("keydown", onKeyDown);
+    document.addEventListener("visibilitychange", onVisibilityChange);
     initGame();
     isPaused = false;
     lastTime = null;
@@ -313,6 +317,25 @@ export function createSnakeEngine(
     if (rafId === null) rafId = requestAnimationFrame(loop);
   }
 
+  // Pausa automática independiente de isPaused (el botón PAUSA del HUD):
+  // al ocultar la pestaña se cancela el rAF activo para no cobrar el salto
+  // de tiempo al volver; no pisa ni sustituye una pausa manual.
+  function onVisibilityChange() {
+    if (document.hidden) {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+        autoPaused = true;
+      }
+    } else if (autoPaused) {
+      autoPaused = false;
+      lastTime = null;
+      if (!isPaused && !gameOver && rafId === null) {
+        rafId = requestAnimationFrame(loop);
+      }
+    }
+  }
+
   function setTheme(nextTheme: SnakeTheme) {
     theme = nextTheme;
     // Re-pinta el frame actual sin tocar el estado de la partida: cubre
@@ -327,6 +350,7 @@ export function createSnakeEngine(
       rafId = null;
     }
     window.removeEventListener("keydown", onKeyDown);
+    document.removeEventListener("visibilitychange", onVisibilityChange);
   }
 
   return { start, pause, resume, setTheme, destroy };

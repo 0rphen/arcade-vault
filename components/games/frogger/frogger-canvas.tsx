@@ -9,6 +9,7 @@ import {
 } from "@/components/games/frogger/engine";
 import { resolveFroggerTheme } from "@/components/games/frogger/themes";
 import type { PlayableGameProps } from "@/components/games/types";
+import { recordRedundantSetTheme } from "@/lib/perf/perf-counters";
 
 export default function FroggerCanvas({
   paused,
@@ -20,6 +21,9 @@ export default function FroggerCanvas({
 }: PlayableGameProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<FroggerEngine | null>(null);
+  const appliedPaletteRef = useRef<ReturnType<
+    typeof resolveFroggerTheme
+  > | null>(null);
 
   const palette = useMemo(() => resolveFroggerTheme(theme), [theme]);
 
@@ -49,6 +53,11 @@ export default function FroggerCanvas({
   }, []);
 
   useEffect(() => {
+    if (appliedPaletteRef.current === palette) {
+      recordRedundantSetTheme();
+      return;
+    }
+    appliedPaletteRef.current = palette;
     engineRef.current?.setTheme(palette);
   }, [palette]);
 

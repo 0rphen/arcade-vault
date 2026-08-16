@@ -36,6 +36,19 @@ const dist = (a: { x: number; y: number }, b: { x: number; y: number }) =>
 const rand = (min: number, max: number) => min + Math.random() * (max - min);
 const randInt = (min: number, max: number) => Math.floor(rand(min, max + 1));
 
+/**
+ * Compacta un array in-place descartando los elementos "dead", preservando
+ * el orden relativo del resto. Evita el churn de un `.filter()` nuevo por
+ * frame para las listas de partículas/balas/asteroides.
+ */
+function compactDead<T extends { dead: boolean }>(arr: T[]): void {
+  let write = 0;
+  for (let read = 0; read < arr.length; read++) {
+    if (!arr[read].dead) arr[write++] = arr[read];
+  }
+  arr.length = write;
+}
+
 type GameState = "playing" | "dead" | "gameover";
 
 export function createAsteroidsEngine(
@@ -465,14 +478,14 @@ export function createAsteroidsEngine(
   function update(dt: number) {
     if (state === "gameover") {
       particles.forEach((p) => p.update(dt));
-      particles = particles.filter((p) => !p.dead);
+      compactDead(particles);
       return;
     }
 
     if (state === "dead") {
       deadTimer -= dt;
       particles.forEach((p) => p.update(dt));
-      particles = particles.filter((p) => !p.dead);
+      compactDead(particles);
       asteroids.forEach((a) => a.update(dt));
       if (deadTimer <= 0) {
         state = "playing";
@@ -492,9 +505,9 @@ export function createAsteroidsEngine(
     particles.forEach((p) => p.update(dt));
     powerUps.forEach((p) => p.update(dt));
 
-    bullets = bullets.filter((b) => !b.dead);
-    particles = particles.filter((p) => !p.dead);
-    powerUps = powerUps.filter((p) => !p.dead);
+    compactDead(bullets);
+    compactDead(particles);
+    compactDead(powerUps);
 
     for (const p of powerUps) {
       if (!p.dead && dist(ship, p) < ship.radius + p.radius) {
@@ -524,8 +537,9 @@ export function createAsteroidsEngine(
         }
       }
     }
-    asteroids = asteroids.filter((a) => !a.dead).concat(newAsteroids);
-    bullets = bullets.filter((b) => !b.dead);
+    compactDead(asteroids);
+    asteroids.push(...newAsteroids);
+    compactDead(bullets);
 
     if (ship.invincible <= 0) {
       for (const a of asteroids) {
@@ -569,6 +583,7 @@ export function createAsteroidsEngine(
   let lastTime: number | null = null;
   let rafId: number | null = null;
   let isPaused = false;
+  let autoPaused = false;
 
   function loop(ts: number) {
     if (isPaused) return;
@@ -582,6 +597,7 @@ export function createAsteroidsEngine(
   function start() {
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
+    document.addEventListener("visibilitychange", onVisibilityChange);
     initGame();
     isPaused = false;
     lastTime = null;
@@ -604,6 +620,25 @@ export function createAsteroidsEngine(
     if (rafId === null) rafId = requestAnimationFrame(loop);
   }
 
+  // Pausa automática independiente de isPaused (el botón PAUSA del HUD):
+  // al ocultar la pestaña se cancela el rAF activo para no cobrar el salto
+  // de tiempo al volver; no pisa ni sustituye una pausa manual.
+  function onVisibilityChange() {
+    if (document.hidden) {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+        autoPaused = true;
+      }
+    } else if (autoPaused) {
+      autoPaused = false;
+      lastTime = null;
+      if (!isPaused && rafId === null) {
+        rafId = requestAnimationFrame(loop);
+      }
+    }
+  }
+
   function destroy() {
     isPaused = true;
     if (rafId !== null) {
@@ -612,6 +647,7 @@ export function createAsteroidsEngine(
     }
     window.removeEventListener("keydown", onKeyDown);
     window.removeEventListener("keyup", onKeyUp);
+    document.removeEventListener("visibilitychange", onVisibilityChange);
   }
 
   return { start, pause, resume, destroy };

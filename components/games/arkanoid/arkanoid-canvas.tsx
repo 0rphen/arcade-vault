@@ -7,6 +7,7 @@ import {
 } from "@/components/games/arkanoid/engine";
 import { resolveArkanoidTheme } from "@/components/games/arkanoid/themes";
 import type { PlayableGameProps } from "@/components/games/types";
+import { recordRedundantSetTheme } from "@/lib/perf/perf-counters";
 
 export default function ArkanoidCanvas({
   paused,
@@ -19,6 +20,9 @@ export default function ArkanoidCanvas({
 }: PlayableGameProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<ArkanoidEngine | null>(null);
+  const appliedPaletteRef = useRef<ReturnType<
+    typeof resolveArkanoidTheme
+  > | null>(null);
 
   const palette = useMemo(() => resolveArkanoidTheme(theme), [theme]);
 
@@ -49,6 +53,11 @@ export default function ArkanoidCanvas({
   }, []);
 
   useEffect(() => {
+    if (appliedPaletteRef.current === palette) {
+      recordRedundantSetTheme();
+      return;
+    }
+    appliedPaletteRef.current = palette;
     engineRef.current?.setTheme(palette);
   }, [palette]);
 

@@ -7,6 +7,7 @@ import {
 } from "@/components/games/caida/engine";
 import { resolveCaidaTheme } from "@/components/games/caida/themes";
 import type { PlayableGameProps } from "@/components/games/types";
+import { recordRedundantSetTheme } from "@/lib/perf/perf-counters";
 
 export default function CaidaCanvas({
   paused,
@@ -19,6 +20,9 @@ export default function CaidaCanvas({
   const boardCanvasRef = useRef<HTMLCanvasElement>(null);
   const nextCanvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<TetrisEngine | null>(null);
+  const appliedPaletteRef = useRef<ReturnType<typeof resolveCaidaTheme> | null>(
+    null,
+  );
 
   const palette = useMemo(() => resolveCaidaTheme(theme), [theme]);
 
@@ -50,6 +54,11 @@ export default function CaidaCanvas({
   }, []);
 
   useEffect(() => {
+    if (appliedPaletteRef.current === palette) {
+      recordRedundantSetTheme();
+      return;
+    }
+    appliedPaletteRef.current = palette;
     engineRef.current?.setTheme(palette);
   }, [palette]);
 

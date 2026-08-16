@@ -7,6 +7,7 @@ import {
 } from "@/components/games/snake/engine";
 import { resolveSnakeTheme } from "@/components/games/snake/themes";
 import type { PlayableGameProps } from "@/components/games/types";
+import { recordRedundantSetTheme } from "@/lib/perf/perf-counters";
 
 export default function SnakeCanvas({
   paused,
@@ -16,6 +17,9 @@ export default function SnakeCanvas({
 }: PlayableGameProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<SnakeEngine | null>(null);
+  const appliedPaletteRef = useRef<ReturnType<typeof resolveSnakeTheme> | null>(
+    null,
+  );
 
   const palette = useMemo(() => resolveSnakeTheme(theme), [theme]);
 
@@ -42,6 +46,11 @@ export default function SnakeCanvas({
   }, []);
 
   useEffect(() => {
+    if (appliedPaletteRef.current === palette) {
+      recordRedundantSetTheme();
+      return;
+    }
+    appliedPaletteRef.current = palette;
     engineRef.current?.setTheme(palette);
   }, [palette]);
 

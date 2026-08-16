@@ -679,6 +679,7 @@ export function createFroggerEngine(
   let lastTime: number | null = null;
   let rafId: number | null = null;
   let isPaused = false;
+  let autoPaused = false;
 
   function loop(ts: number) {
     if (isPaused) return;
@@ -697,6 +698,7 @@ export function createFroggerEngine(
 
   function start() {
     window.addEventListener("keydown", onKeyDown);
+    document.addEventListener("visibilitychange", onVisibilityChange);
     initGame();
     ready = true;
     isPaused = false;
@@ -720,6 +722,25 @@ export function createFroggerEngine(
     if (rafId === null) rafId = requestAnimationFrame(loop);
   }
 
+  // Pausa automática independiente de isPaused (el botón PAUSA del HUD):
+  // al ocultar la pestaña se cancela el rAF activo para no cobrar el salto
+  // de tiempo al volver; no pisa ni sustituye una pausa manual.
+  function onVisibilityChange() {
+    if (document.hidden) {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+        autoPaused = true;
+      }
+    } else if (autoPaused) {
+      autoPaused = false;
+      lastTime = null;
+      if (!isPaused && !gameOver && rafId === null) {
+        rafId = requestAnimationFrame(loop);
+      }
+    }
+  }
+
   function setTheme(nextTheme: FroggerTheme) {
     theme = nextTheme;
     // Re-pinta el frame actual sin tocar el estado de la partida: cubre
@@ -735,6 +756,7 @@ export function createFroggerEngine(
       rafId = null;
     }
     window.removeEventListener("keydown", onKeyDown);
+    document.removeEventListener("visibilitychange", onVisibilityChange);
   }
 
   return { start, pause, resume, setTheme, destroy };

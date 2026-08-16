@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { GameWithBest } from "@/lib/supabase/queries";
 import { appendScore, getStoredUser } from "@/lib/session";
@@ -9,11 +9,14 @@ import { PLAYABLE_GAMES } from "@/components/games/registry";
 import type { GameThemeMode } from "@/components/games/types";
 import TouchControls from "@/components/games/touch-controls";
 import { TOUCH_CONTROLS_CONFIG } from "@/components/games/touch-controls-config";
+import PerfOverlay from "@/components/games/perf-overlay";
+import { recordRender } from "@/lib/perf/perf-counters";
 
 const themeStorageKey = (gameId: string) => `arcade-vault:${gameId}:theme`;
 const modeStorageKey = (gameId: string) => `arcade-vault:${gameId}:mode`;
 
 export default function GamePlayer({ game }: { game: GameWithBest }) {
+  recordRender();
   const router = useRouter();
   const playable = PLAYABLE_GAMES[game.id];
   const hasRealEngine = Boolean(playable);
@@ -34,10 +37,17 @@ export default function GamePlayer({ game }: { game: GameWithBest }) {
   const [name, setName] = useState("INVITADO");
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState(false);
+  const [perfEnabled, setPerfEnabled] = useState(false);
 
   useEffect(() => {
     const user = getStoredUser();
     if (user) setName(user.name);
+  }, []);
+
+  useEffect(() => {
+    setPerfEnabled(
+      new URLSearchParams(window.location.search).get("perf") === "1",
+    );
   }, []);
 
   useEffect(() => {
@@ -82,7 +92,20 @@ export default function GamePlayer({ game }: { game: GameWithBest }) {
     if (score > 0 && score % 2500 < 100) setLevel((l) => l + 1);
   }, [hasRealEngine, score]);
 
-  const endGame = () => setOver(true);
+  const endGame = useCallback(() => setOver(true), []);
+  const handleResumeRequested = useCallback(() => setPaused(false), []);
+  const handlePauseToggle = useCallback(() => setPaused((p) => !p), []);
+  const handleGameOver = useCallback(
+    (finalScore: number) => {
+      setScore(finalScore);
+      endGame();
+    },
+    [endGame],
+  );
+  const themeSelection = useMemo(
+    () => (themeOptions ? { themeId, mode: themeMode } : undefined),
+    [themeOptions, themeId, themeMode],
+  );
   const restart = () => {
     setScore(0);
     setLives(3);
@@ -97,6 +120,7 @@ export default function GamePlayer({ game }: { game: GameWithBest }) {
 
   return (
     <div className="av-player fade-in">
+      {perfEnabled && <PerfOverlay />}
       <div className="player-hud">
         <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
           <div className="hud-stat">
@@ -137,7 +161,7 @@ export default function GamePlayer({ game }: { game: GameWithBest }) {
           )}
         </div>
         <div className="hud-actions">
-          <button className="btn yellow" onClick={() => setPaused((p) => !p)}>
+          <button className="btn yellow" onClick={handlePauseToggle}>
             {paused ? "REANUDAR" : "PAUSA"}
           </button>
           <button className="btn magenta" onClick={endGame}>
@@ -163,12 +187,9 @@ export default function GamePlayer({ game }: { game: GameWithBest }) {
                 onLevelChange={setLevel}
                 onLinesChange={setLines}
                 onTripleShotChange={setTripleShot}
-                onResumeRequested={() => setPaused(false)}
-                theme={themeOptions ? { themeId, mode: themeMode } : undefined}
-                onGameOver={(finalScore: number) => {
-                  setScore(finalScore);
-                  endGame();
-                }}
+                onResumeRequested={handleResumeRequested}
+                theme={themeSelection}
+                onGameOver={handleGameOver}
               />
             )
           ) : (
@@ -220,8 +241,8 @@ export default function GamePlayer({ game }: { game: GameWithBest }) {
           config={touchConfig}
           disabled={paused}
           paused={paused}
-          onPauseToggle={() => setPaused((p) => !p)}
-          theme={themeOptions ? { themeId, mode: themeMode } : undefined}
+          onPauseToggle={handlePauseToggle}
+          theme={themeSelection}
         />
       )}
 
