@@ -404,6 +404,7 @@ export function createTetrisEngine(
   let lastTime: number | null = null;
   let rafId: number | null = null;
   let isPaused = false;
+  let autoPaused = false;
   let started = false;
 
   function loop(ts: number) {
@@ -431,6 +432,7 @@ export function createTetrisEngine(
 
   function start() {
     window.addEventListener("keydown", onKeyDown);
+    document.addEventListener("visibilitychange", onVisibilityChange);
     initGame();
     started = true;
     isPaused = false;
@@ -454,6 +456,25 @@ export function createTetrisEngine(
     if (rafId === null) rafId = requestAnimationFrame(loop);
   }
 
+  // Pausa automática independiente de isPaused (el botón PAUSA del HUD):
+  // al ocultar la pestaña se cancela el rAF activo para no cobrar el salto
+  // de tiempo al volver; no pisa ni sustituye una pausa manual.
+  function onVisibilityChange() {
+    if (document.hidden) {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+        autoPaused = true;
+      }
+    } else if (autoPaused) {
+      autoPaused = false;
+      lastTime = null;
+      if (!isPaused && !gameOver && rafId === null) {
+        rafId = requestAnimationFrame(loop);
+      }
+    }
+  }
+
   function destroy() {
     isPaused = true;
     if (rafId !== null) {
@@ -461,6 +482,7 @@ export function createTetrisEngine(
       rafId = null;
     }
     window.removeEventListener("keydown", onKeyDown);
+    document.removeEventListener("visibilitychange", onVisibilityChange);
   }
 
   function setTheme(nextTheme: CaidaTheme) {

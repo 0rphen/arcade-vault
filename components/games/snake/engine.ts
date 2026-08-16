@@ -30,6 +30,21 @@ const POINTS_PER_FRUIT = 10;
 
 const FRUIT_KEYS = Object.keys(FRUIT_SPRITES);
 
+// Memoizado en el primer uso, compartido por todas las instancias del
+// engine: evita recargar el sprite en cada montaje/desmontaje del canvas.
+// No a nivel de módulo: `Image` no existe durante el prerender/SSR, y esta
+// función solo se invoca desde createSnakeEngine(), que a su vez solo corre
+// en un useEffect de cliente.
+let cachedFruitImage: HTMLImageElement | null = null;
+
+function getFruitImage(): HTMLImageElement {
+  if (!cachedFruitImage) {
+    cachedFruitImage = new Image();
+    cachedFruitImage.src = "/games/snake/fruits.png";
+  }
+  return cachedFruitImage;
+}
+
 interface Point {
   x: number;
   y: number;
@@ -57,10 +72,9 @@ export function createSnakeEngine(
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("2D context not available on canvas");
 
-  let theme: SnakeTheme = initialTheme ?? resolveSnakeTheme();
+  const fruitImg = getFruitImage();
 
-  const fruitImage = new Image();
-  fruitImage.src = "/games/snake/fruits.png";
+  let theme: SnakeTheme = initialTheme ?? resolveSnakeTheme();
 
   // ── Estado ──────────────────────────────────────────────────────────────
   let snake: Point[];
@@ -216,11 +230,11 @@ export function createSnakeEngine(
     ctx!.fillRect(0, 0, canvas.width, canvas.height);
     drawGrid();
 
-    if (fruitImage.complete && fruitImage.naturalWidth > 0) {
+    if (fruitImg.complete && fruitImg.naturalWidth > 0) {
       const sprite = FRUIT_SPRITES[fruitSprite];
       drawFruitHalo();
       ctx!.drawImage(
-        fruitImage,
+        fruitImg,
         sprite.x,
         sprite.y,
         sprite.w,
@@ -268,6 +282,7 @@ export function createSnakeEngine(
   let lastTime: number | null = null;
   let rafId: number | null = null;
   let isPaused = false;
+  let autoPaused = false;
   let accum = 0;
 
   function loop(ts: number) {
@@ -290,6 +305,7 @@ export function createSnakeEngine(
 
   function start() {
     window.addEventListener("keydown", onKeyDown);
+    document.addEventListener("visibilitychange", onVisibilityChange);
     initGame();
     isPaused = false;
     lastTime = null;
@@ -313,6 +329,25 @@ export function createSnakeEngine(
     if (rafId === null) rafId = requestAnimationFrame(loop);
   }
 
+  // Pausa automática independiente de isPaused (el botón PAUSA del HUD):
+  // al ocultar la pestaña se cancela el rAF activo para no cobrar el salto
+  // de tiempo al volver; no pisa ni sustituye una pausa manual.
+  function onVisibilityChange() {
+    if (document.hidden) {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+        autoPaused = true;
+      }
+    } else if (autoPaused) {
+      autoPaused = false;
+      lastTime = null;
+      if (!isPaused && !gameOver && rafId === null) {
+        rafId = requestAnimationFrame(loop);
+      }
+    }
+  }
+
   function setTheme(nextTheme: SnakeTheme) {
     theme = nextTheme;
     // Re-pinta el frame actual sin tocar el estado de la partida: cubre
@@ -327,6 +362,7 @@ export function createSnakeEngine(
       rafId = null;
     }
     window.removeEventListener("keydown", onKeyDown);
+    document.removeEventListener("visibilitychange", onVisibilityChange);
   }
 
   return { start, pause, resume, setTheme, destroy };

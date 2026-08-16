@@ -1,6 +1,9 @@
 // Port of references/started-games/04-arkanoid/game.js + levels.js —
-// encapsulated, no module-level globals, so multiple mount/unmount cycles
-// stay isolated.
+// encapsulated, no module-level game state, so multiple mount/unmount cycles
+// stay isolated. Stateless assets (audio pool below) are the one deliberate
+// exception: they hold no game state and are expensive to recreate per mount,
+// but they're still built lazily on first use, not eagerly at module scope —
+// `Audio` doesn't exist during SSR/prerendering.
 
 import {
   resolveArkanoidTheme,
@@ -26,6 +29,52 @@ export interface ArkanoidEngine {
 
 const W = 800;
 const H = 600;
+
+// evita que la bola atraviese bloques tras un frame largo (pestaña oculta, GC)
+const MAX_DT = 0.05;
+
+// Pool de <audio>: evita cloneNode() (recarga/decodifica la fuente de nuevo)
+// en cada disparo de SFX y recrear los Audio() base en cada montaje del
+// canvas. Round-robin sobre unas pocas instancias precreadas para soportar
+// rebotes solapados sin cortar el sonido anterior.
+const AUDIO_POOL_SIZE = 4;
+
+interface AudioPool {
+  clips: HTMLAudioElement[];
+  next: number;
+}
+
+function createAudioPool(src: string): AudioPool {
+  return {
+    clips: Array.from({ length: AUDIO_POOL_SIZE }, () => new Audio(src)),
+    next: 0,
+  };
+}
+
+function playFromPool(pool: AudioPool) {
+  const clip = pool.clips[pool.next];
+  pool.next = (pool.next + 1) % pool.clips.length;
+  clip.currentTime = 0;
+  clip.play().catch(() => {});
+}
+
+// Memoizados en el primer uso (no a nivel de módulo): `Audio` no existe
+// durante el prerender/SSR, y esta función solo se invoca desde dentro de
+// createArkanoidEngine(), que a su vez solo corre en un useEffect de cliente.
+let bounceSoundPool: AudioPool | null = null;
+let breakSoundPool: AudioPool | null = null;
+
+function getBounceSoundPool(): AudioPool {
+  if (!bounceSoundPool)
+    bounceSoundPool = createAudioPool("/sounds/ball-bounce.mp3");
+  return bounceSoundPool;
+}
+
+function getBreakSoundPool(): AudioPool {
+  if (!breakSoundPool)
+    breakSoundPool = createAudioPool("/sounds/break-sound.mp3");
+  return breakSoundPool;
+}
 
 const PADDLE_SPEED = 400;
 const BLOCK_COLS = 10;
@@ -273,14 +322,6 @@ export function createArkanoidEngine(
 
   const LEVELS = buildLevels();
 
-  const bounceSound = new Audio("/sounds/ball-bounce.mp3");
-  const breakSound = new Audio("/sounds/break-sound.mp3");
-
-  const playSound = (audio: HTMLAudioElement) => {
-    const clone = audio.cloneNode() as HTMLAudioElement;
-    clone.play().catch(() => {});
-  };
-
   // ── Spritesheet ─────────────────────────────────────────────────────────
   let ssImage: HTMLCanvasElement | null = null;
   let ssLoaded = false;
@@ -358,6 +399,7 @@ export function createArkanoidEngine(
   let gameState: GameState = "playing";
   let currentLevel = 1;
   let isPaused = false;
+  let autoPaused = false;
   let gameOverEmitted = false;
 
   let lastEmittedScore = -1;
@@ -466,17 +508,17 @@ export function createArkanoidEngine(
     if (ball.x <= 0) {
       ball.x = 0;
       ball.vx = Math.abs(ball.vx);
-      playSound(bounceSound);
+      playFromPool(getBounceSoundPool());
     }
     if (ball.x + ball.w >= W) {
       ball.x = W - ball.w;
       ball.vx = -Math.abs(ball.vx);
-      playSound(bounceSound);
+      playFromPool(getBounceSoundPool());
     }
     if (ball.y <= 0) {
       ball.y = 0;
       ball.vy = Math.abs(ball.vy);
-      playSound(bounceSound);
+      playFromPool(getBounceSoundPool());
     }
 
     if (
@@ -488,7 +530,7 @@ export function createArkanoidEngine(
     ) {
       ball.y = paddle.y - ball.h;
       ball.vy = -Math.abs(ball.vy);
-      playSound(bounceSound);
+      playFromPool(getBounceSoundPool());
     }
 
     for (const block of blocks) {
@@ -505,7 +547,7 @@ export function createArkanoidEngine(
         });
         score += 10;
         ball.vy = -ball.vy;
-        playSound(breakSound);
+        playFromPool(getBreakSoundPool());
         if (blocks.every((b) => !b.alive)) {
           if (currentLevel < 5) loadLevel(currentLevel + 1);
           else gameState = "win";
@@ -653,7 +695,7 @@ export function createArkanoidEngine(
   function loop(timestamp: number) {
     if (isPaused) return;
     if (lastTime === null) lastTime = timestamp;
-    const dt = (timestamp - lastTime) / 1000;
+    const dt = Math.min((timestamp - lastTime) / 1000, MAX_DT);
     lastTime = timestamp;
 
     update(dt);
@@ -680,6 +722,7 @@ export function createArkanoidEngine(
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
     canvas.addEventListener("click", onClick);
+    document.addEventListener("visibilitychange", onVisibilityChange);
 
     isPaused = false;
     lastTime = null;
@@ -707,6 +750,25 @@ export function createArkanoidEngine(
     if (rafId === null) rafId = requestAnimationFrame(loop);
   }
 
+  // Pausa automática independiente de isPaused (el botón PAUSA del HUD):
+  // al ocultar la pestaña se cancela el rAF activo para no cobrar el salto
+  // de tiempo al volver; no pisa ni sustituye una pausa manual.
+  function onVisibilityChange() {
+    if (document.hidden) {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+        autoPaused = true;
+      }
+    } else if (autoPaused) {
+      autoPaused = false;
+      lastTime = null;
+      if (!isPaused && gameState === "playing" && rafId === null) {
+        rafId = requestAnimationFrame(loop);
+      }
+    }
+  }
+
   function destroy() {
     isPaused = true;
     if (rafId !== null) {
@@ -716,6 +778,7 @@ export function createArkanoidEngine(
     window.removeEventListener("keydown", onKeyDown);
     window.removeEventListener("keyup", onKeyUp);
     canvas.removeEventListener("click", onClick);
+    document.removeEventListener("visibilitychange", onVisibilityChange);
   }
 
   function setTheme(nextTheme: ArkanoidTheme) {
