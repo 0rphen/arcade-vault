@@ -31,6 +31,13 @@ export interface DbScoreRow {
   name: string;
   score: number;
   date: string;
+  isMine: boolean;
+}
+
+export interface DbBestScoreRow {
+  gameId: string;
+  score: number;
+  date: string;
 }
 
 function formatDate(iso: string): string {
@@ -102,11 +109,12 @@ export async function getGameById(id: string): Promise<GameWithBest | null> {
 export async function getTopScores(
   gameId: string,
   limit = 12,
+  currentUserId?: string | null,
 ): Promise<DbScoreRow[]> {
   const supabase = getSupabase();
   const { data, error } = await supabase
     .from("scores")
-    .select("name, score, created_at")
+    .select("name, score, created_at, user_id")
     .eq("game_id", gameId)
     .order("score", { ascending: false })
     .limit(limit);
@@ -118,7 +126,34 @@ export async function getTopScores(
     name: row.name,
     score: row.score,
     date: formatDate(row.created_at),
+    isMine: row.user_id != null && row.user_id === currentUserId,
   }));
+}
+
+export async function getMyBestScores(
+  userId: string,
+): Promise<DbBestScoreRow[]> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from("scores")
+    .select("game_id, score, created_at")
+    .eq("user_id", userId)
+    .order("score", { ascending: false });
+
+  if (error) throw error;
+
+  const bestByGame = new Map<string, DbBestScoreRow>();
+  for (const row of data ?? []) {
+    if (!bestByGame.has(row.game_id)) {
+      bestByGame.set(row.game_id, {
+        gameId: row.game_id,
+        score: row.score,
+        date: formatDate(row.created_at),
+      });
+    }
+  }
+
+  return Array.from(bestByGame.values());
 }
 
 // Only invoked from Server Actions (never generateStaticParams), so the
@@ -128,11 +163,15 @@ export async function insertScore(entry: {
   gameId: string;
   name: string;
   score: number;
+  userId: string;
 }): Promise<void> {
   const supabase = await createServerClient();
-  const { error } = await supabase
-    .from("scores")
-    .insert({ game_id: entry.gameId, name: entry.name, score: entry.score });
+  const { error } = await supabase.from("scores").insert({
+    game_id: entry.gameId,
+    name: entry.name,
+    score: entry.score,
+    user_id: entry.userId,
+  });
 
   if (error) throw error;
 }

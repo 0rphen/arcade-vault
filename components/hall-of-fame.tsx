@@ -2,12 +2,24 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import type { DbGame, DbScoreRow } from "@/lib/supabase/queries";
-import { getTopScoresAction } from "@/lib/actions/scores";
+import type {
+  DbBestScoreRow,
+  DbGame,
+  DbScoreRow,
+} from "@/lib/supabase/queries";
+import {
+  getMyBestScoresAction,
+  getTopScoresAction,
+} from "@/lib/actions/scores";
 
 export default function HallOfFame({ games }: { games: DbGame[] }) {
   const [tab, setTab] = useState(games[0]?.id ?? "");
   const [rows, setRows] = useState<DbScoreRow[]>([]);
+  const [myBest, setMyBest] = useState<DbBestScoreRow[]>([]);
+
+  useEffect(() => {
+    getMyBestScoresAction().then(setMyBest);
+  }, []);
 
   useEffect(() => {
     if (!tab) return;
@@ -21,6 +33,7 @@ export default function HallOfFame({ games }: { games: DbGame[] }) {
   }, [tab]);
 
   const game = games.find((g) => g.id === tab);
+  const myBestForTab = myBest.find((b) => b.gameId === tab);
 
   return (
     <div className="av-hall fade-in">
@@ -106,12 +119,25 @@ export default function HallOfFame({ games }: { games: DbGame[] }) {
             <div>PUNTUACIÓN</div>
             <div>FECHA</div>
           </div>
+          {myBestForTab && (
+            <div className="tr you-label">
+              TU MEJOR MARCA: {myBestForTab.score.toLocaleString("es-ES")} ·{" "}
+              {myBestForTab.date}
+            </div>
+          )}
           {rows.map((r, i) => (
             <div
               key={r.name + i}
               className={
                 "tr" +
-                (i === 0 ? " top1" : i === 1 ? " top2" : i === 2 ? " top3" : "")
+                (i === 0
+                  ? " top1"
+                  : i === 1
+                    ? " top2"
+                    : i === 2
+                      ? " top3"
+                      : "") +
+                (r.isMine ? " you" : "")
               }
               style={{ animationDelay: `${i * 50}ms` }}
             >
