@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { GameWithBest } from "@/lib/supabase/queries";
-import { appendScore, getStoredUser } from "@/lib/session";
+import { appendScore } from "@/lib/session";
 import { saveScoreAction } from "@/lib/actions/scores";
 import { PLAYABLE_GAMES } from "@/components/games/registry";
 import type { GameThemeMode } from "@/components/games/types";
@@ -15,7 +15,13 @@ import { recordRender } from "@/lib/perf/perf-counters";
 const themeStorageKey = (gameId: string) => `arcade-vault:${gameId}:theme`;
 const modeStorageKey = (gameId: string) => `arcade-vault:${gameId}:mode`;
 
-export default function GamePlayer({ game }: { game: GameWithBest }) {
+export default function GamePlayer({
+  game,
+  initialName = "INVITADO",
+}: {
+  game: GameWithBest;
+  initialName?: string;
+}) {
   recordRender();
   const router = useRouter();
   const playable = PLAYABLE_GAMES[game.id];
@@ -34,15 +40,10 @@ export default function GamePlayer({ game }: { game: GameWithBest }) {
   const [paused, setPaused] = useState(false);
   const [tripleShot, setTripleShot] = useState(0);
   const [over, setOver] = useState(false);
-  const [name, setName] = useState("INVITADO");
+  const [name, setName] = useState(initialName);
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState(false);
   const [perfEnabled, setPerfEnabled] = useState(false);
-
-  useEffect(() => {
-    const user = getStoredUser();
-    if (user) setName(user.name);
-  }, []);
 
   useEffect(() => {
     setPerfEnabled(

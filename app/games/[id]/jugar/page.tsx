@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getGameById, getGames } from "@/lib/supabase/queries";
+import { getCurrentProfile } from "@/lib/auth/user";
 import GamePlayer from "@/components/game-player";
 
 export async function generateStaticParams() {
@@ -13,9 +14,14 @@ export default async function GamePlayerPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const game = await getGameById(id);
+  const [game, profile] = await Promise.all([
+    getGameById(id),
+    getCurrentProfile(),
+  ]);
 
   if (!game) notFound();
 
-  return <GamePlayer game={game} />;
+  return (
+    <GamePlayer game={game} initialName={profile?.nickname ?? "INVITADO"} />
+  );
 }
