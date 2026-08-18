@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import type { GameWithBest } from "@/lib/supabase/queries";
 import { appendScore } from "@/lib/session";
 import { saveScoreAction } from "@/lib/actions/scores";
@@ -17,10 +18,10 @@ const modeStorageKey = (gameId: string) => `arcade-vault:${gameId}:mode`;
 
 export default function GamePlayer({
   game,
-  initialName = "INVITADO",
+  nickname,
 }: {
   game: GameWithBest;
-  initialName?: string;
+  nickname: string | null;
 }) {
   recordRender();
   const router = useRouter();
@@ -40,7 +41,6 @@ export default function GamePlayer({
   const [paused, setPaused] = useState(false);
   const [tripleShot, setTripleShot] = useState(0);
   const [over, setOver] = useState(false);
-  const [name, setName] = useState(initialName);
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState(false);
   const [perfEnabled, setPerfEnabled] = useState(false);
@@ -127,7 +127,7 @@ export default function GamePlayer({
           <div className="hud-stat">
             <div className="l">Jugador</div>
             <div className="v" style={{ color: "var(--ink)" }}>
-              {name}
+              {nickname ?? "INVITADO"}
             </div>
           </div>
           <div className="hud-stat">
@@ -283,32 +283,39 @@ export default function GamePlayer({
             <div className="final">{score.toLocaleString("es-ES")}</div>
             {!saved ? (
               <div className="input-row">
-                <input
-                  value={name}
-                  onChange={(e) =>
-                    setName(e.target.value.toUpperCase().slice(0, 10))
-                  }
-                  placeholder="TUS INICIALES"
-                />
-                <button
-                  className="btn yellow"
-                  onClick={async () => {
-                    if (hasRealEngine) {
-                      try {
-                        setSaveError(false);
-                        await saveScoreAction({ gameId: game.id, name, score });
+                {hasRealEngine && !nickname ? (
+                  <div
+                    className="toast-saved"
+                    style={{ color: "var(--ink-dim)" }}
+                  >
+                    ▸ INICIA SESIÓN PARA GUARDAR TU PUNTAJE —{" "}
+                    <Link href="/auth">INICIAR SESIÓN</Link>
+                  </div>
+                ) : (
+                  <button
+                    className="btn yellow"
+                    onClick={async () => {
+                      if (hasRealEngine) {
+                        try {
+                          setSaveError(false);
+                          await saveScoreAction({ gameId: game.id, score });
+                          setSaved(true);
+                        } catch {
+                          setSaveError(true);
+                        }
+                      } else {
+                        appendScore({
+                          game: game.id,
+                          score,
+                          name: nickname ?? "INVITADO",
+                        });
                         setSaved(true);
-                      } catch {
-                        setSaveError(true);
                       }
-                    } else {
-                      appendScore({ game: game.id, score, name });
-                      setSaved(true);
-                    }
-                  }}
-                >
-                  GUARDAR PUNTUACIÓN
-                </button>
+                    }}
+                  >
+                    GUARDAR PUNTUACIÓN
+                  </button>
+                )}
                 {saveError && (
                   <div
                     className="toast-saved"

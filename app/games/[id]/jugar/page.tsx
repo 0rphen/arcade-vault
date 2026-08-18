@@ -21,7 +21,5 @@ export default async function GamePlayerPage({
 
   if (!game) notFound();
 
-  return (
-    <GamePlayer game={game} initialName={profile?.nickname ?? "INVITADO"} />
-  );
+  return <GamePlayer game={game} nickname={profile?.nickname ?? null} />;
 }

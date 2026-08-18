@@ -1,17 +1,28 @@
 "use server";
 
-import { getTopScores, insertScore } from "@/lib/supabase/queries";
-import type { DbScoreRow } from "@/lib/supabase/queries";
+import {
+  getMyBestScores,
+  getTopScores,
+  insertScore,
+} from "@/lib/supabase/queries";
+import type { DbBestScoreRow, DbScoreRow } from "@/lib/supabase/queries";
+import { getCurrentProfile, getCurrentUser } from "@/lib/auth/user";
 
 export async function getTopScoresAction(
   gameId: string,
-  limit?: number,
+  limit = 12,
 ): Promise<DbScoreRow[]> {
-  return getTopScores(gameId, limit);
+  const user = await getCurrentUser();
+  return getTopScores(gameId, limit, user?.id ?? null);
+}
+
+export async function getMyBestScoresAction(): Promise<DbBestScoreRow[]> {
+  const user = await getCurrentUser();
+  if (!user) return [];
+  return getMyBestScores(user.id);
 }
 
 const MAX_SCORE = 999_999;
-const MAX_NAME_LENGTH = 10;
 
 // ROCAS (spec 05), CAIDA (spec 07), ARKANOID (spec 08), SNAKE (spec 09) and
 // FROGGER (game-jam frogger/01) have real game engines; the rest of the
@@ -26,15 +37,11 @@ const GAMES_WITH_REAL_SCORES = new Set([
 
 export async function saveScoreAction(entry: {
   gameId: string;
-  name: string;
   score: number;
 }): Promise<void> {
   if (!GAMES_WITH_REAL_SCORES.has(entry.gameId)) {
     throw new Error("Invalid game");
   }
-
-  const name = entry.name.trim().slice(0, MAX_NAME_LENGTH);
-  if (!name) throw new Error("Name is required");
 
   if (
     !Number.isInteger(entry.score) ||
@@ -44,5 +51,13 @@ export async function saveScoreAction(entry: {
     throw new Error("Invalid score");
   }
 
-  await insertScore({ ...entry, name });
+  const profile = await getCurrentProfile();
+  if (!profile) throw new Error("Sign in required");
+
+  await insertScore({
+    gameId: entry.gameId,
+    score: entry.score,
+    name: profile.nickname,
+    userId: profile.id,
+  });
 }

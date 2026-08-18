@@ -1,6 +1,6 @@
 # SPEC 14 — Identidad real en el leáderboard
 
-> **Estado:** Draft
+> **Estado:** Implementado
 > **Depende de:** 06-leaderboard-catalogo-supabase, 13-supabase-auth
 > **Fecha:** 2026-08-17
 > **Objetivo:** Vincular cada puntaje a una cuenta real de Supabase para que nadie pueda firmar una marca con el nombre de otro jugador.
@@ -77,14 +77,14 @@ export async function getMyBestScores(
 
 ## Criterios de aceptación
 
-- [ ] Llamar `saveScoreAction` sin sesión iniciada lanza un error y no inserta ninguna fila.
-- [ ] Guardar un puntaje logueado inserta la fila con `user_id` igual al usuario de la sesión y `name` igual al nickname actual.
-- [ ] El modal de game over ya no tiene un campo de texto para el nombre.
-- [ ] Sin sesión, el modal de game over no ofrece guardar el puntaje y enlaza a `/auth`.
-- [ ] `/perfil` muestra "mis mejores marcas" con al menos el juego recién jugado tras guardar un puntaje.
-- [ ] `/salon` vuelve a mostrar "TU MEJOR MARCA" cuando hay sesión con puntajes propios.
-- [ ] Las 3 filas históricas de `scores` (sin `user_id`) siguen visibles en `/salon` sin errores.
-- [ ] `npx tsc --noEmit` no reporta errores nuevos tras los cambios de este spec.
+- [x] Llamar `saveScoreAction` sin sesión iniciada lanza un error y no inserta ninguna fila.
+- [x] Guardar un puntaje logueado inserta la fila con `user_id` igual al usuario de la sesión y `name` igual al nickname actual.
+- [x] El modal de game over ya no tiene un campo de texto para el nombre.
+- [x] Sin sesión, el modal de game over no ofrece guardar el puntaje y enlaza a `/auth`.
+- [x] `/perfil` muestra "mis mejores marcas" con al menos el juego recién jugado tras guardar un puntaje.
+- [x] `/salon` vuelve a mostrar "TU MEJOR MARCA" cuando hay sesión con puntajes propios.
+- [x] Las 3 filas históricas de `scores` (sin `user_id`) siguen visibles en `/salon` sin errores.
+- [x] `npx tsc --noEmit` no reporta errores nuevos tras los cambios de este spec.
 
 ## Decisiones tomadas y descartadas
 
@@ -95,6 +95,7 @@ export async function getMyBestScores(
 - **Sí:** el modal de game over pasa de "input editable" a "nombre resuelto por servidor + aviso si no hay sesión". Es el cambio que efectivamente cierra la posibilidad de suplantación, que era el problema documentado en spec 06.
 - **No:** exigir sesión para jugar. Solo se exige para guardar el puntaje, conforme a lo decidido en SPEC 13.
 - **No:** reemplazar la política RLS de INSERT de `scores` en este spec. Decisión explícita del usuario para acotar el alcance — la protección de este spec es a nivel aplicación (`saveScoreAction` exige sesión); la política de base de datos queda para una spec futura, mismo patrón usado en SPEC 13 con `profiles`.
+- **Sí (desviación acordada durante la implementación):** `DbScoreRow` gana un campo `isMine: boolean`, aunque el spec decía que la interfaz "no cambia". Sin este campo derivado no había forma de cumplir con exactitud el criterio de aceptación "resaltar las filas propias del usuario" en `/salon` — comparar por `name` fallaría si otro jugador tuvo el mismo nickname o si el usuario lo cambió después (el propio `name` es un snapshot, ver decisión anterior). `isMine` se calcula en servidor comparando `user_id` con la sesión actual; no se expone `user_id` al cliente.
 
 ## Riesgos identificados
 
