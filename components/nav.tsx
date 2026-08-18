@@ -3,29 +3,25 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { clearUser, getStoredUser, type AuthUser } from "@/lib/session";
+import type { CurrentProfile } from "@/lib/auth/user";
 
-export default function Nav() {
+export default function Nav({ profile }: { profile: CurrentProfile | null }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const [user, setUser] = useState<AuthUser | null>(null);
 
   useEffect(() => {
-    setUser(getStoredUser());
     setOpen(false);
   }, [pathname]);
 
-  const isActive = (section: "inicio" | "biblioteca" | "salon" | "about" | "auth") => {
+  const isActive = (
+    section: "inicio" | "biblioteca" | "salon" | "about" | "auth",
+  ) => {
     if (section === "inicio") return pathname === "/games";
-    if (section === "biblioteca") return pathname === "/" || pathname.startsWith("/games/");
+    if (section === "biblioteca")
+      return pathname === "/" || pathname.startsWith("/games/");
     if (section === "salon") return pathname === "/salon";
     if (section === "about") return pathname === "/about";
     return pathname === "/auth";
-  };
-
-  const handleSignOut = () => {
-    clearUser();
-    setUser(null);
   };
 
   const closeMenu = () => setOpen(false);
@@ -58,10 +54,10 @@ export default function Nav() {
           <span className="coin"></span>
           <span>CRÉDITOS · 03</span>
         </div>
-        {user ? (
-          <button className="btn ghost auth-btn" onClick={handleSignOut}>
-            {user.name} ▾
-          </button>
+        {profile ? (
+          <Link href="/perfil" className="btn ghost auth-btn">
+            {profile.nickname} ▾
+          </Link>
         ) : (
           <Link href="/auth" className="btn auth-btn">
             Iniciar Sesión
@@ -81,30 +77,56 @@ export default function Nav() {
         onClick={closeMenu}
       ></div>
       <aside className={"av-mobile-panel" + (open ? " open" : "")}>
-        <div className="pixel neon-cyan" style={{ fontSize: 11, marginBottom: 16 }}>
+        <div
+          className="pixel neon-cyan"
+          style={{ fontSize: 11, marginBottom: 16 }}
+        >
           MENÚ
         </div>
-        <Link href="/games" className={isActive("inicio") ? "active" : ""} onClick={closeMenu}>
+        <Link
+          href="/games"
+          className={isActive("inicio") ? "active" : ""}
+          onClick={closeMenu}
+        >
           Inicio
         </Link>
-        <Link href="/" className={isActive("biblioteca") ? "active" : ""} onClick={closeMenu}>
+        <Link
+          href="/"
+          className={isActive("biblioteca") ? "active" : ""}
+          onClick={closeMenu}
+        >
           Biblioteca
         </Link>
-        <Link href="/salon" className={isActive("salon") ? "active" : ""} onClick={closeMenu}>
+        <Link
+          href="/salon"
+          className={isActive("salon") ? "active" : ""}
+          onClick={closeMenu}
+        >
           Salón de la Fama
         </Link>
-        <Link href="/about" className={isActive("about") ? "active" : ""} onClick={closeMenu}>
+        <Link
+          href="/about"
+          className={isActive("about") ? "active" : ""}
+          onClick={closeMenu}
+        >
           Acerca de
         </Link>
         <Link
-          href="/auth"
+          href={profile ? "/perfil" : "/auth"}
           className={isActive("auth") ? "active" : ""}
           onClick={closeMenu}
         >
-          {user ? "Cuenta" : "Iniciar Sesión"}
+          {profile ? "Cuenta" : "Iniciar Sesión"}
         </Link>
         <div style={{ flex: 1 }}></div>
-        <div className="pixel" style={{ fontSize: 9, color: "var(--ink-faint)", letterSpacing: "0.16em" }}>
+        <div
+          className="pixel"
+          style={{
+            fontSize: 9,
+            color: "var(--ink-faint)",
+            letterSpacing: "0.16em",
+          }}
+        >
           CRÉDITOS · 03
         </div>
       </aside>

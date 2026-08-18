@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
-import { Press_Start_2P, JetBrains_Mono, Courier_Prime } from "next/font/google";
+import {
+  Press_Start_2P,
+  JetBrains_Mono,
+  Courier_Prime,
+} from "next/font/google";
 import Nav from "@/components/nav";
+import { getCurrentProfile } from "@/lib/auth/user";
 import "./globals.css";
 
 const pressStart2P = Press_Start_2P({
@@ -26,11 +31,13 @@ export const metadata: Metadata = {
   description: "Online arcade platform — players compete for high scores.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const profile = await getCurrentProfile();
+
   return (
     <html
       lang="en"
@@ -40,7 +47,7 @@ export default function RootLayout({
         <div className="av-bg" />
         <div className="av-noise" />
         <div id="root">
-          <Nav />
+          <Nav profile={profile} />
           <main className="av-main">{children}</main>
           <footer
             style={{
