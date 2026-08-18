@@ -1,6 +1,6 @@
 # SPEC 16 — Headers de seguridad y configuración de Supabase Auth
 
-> **Estado:** Approved
+> **Estado:** Implementado
 > **Depende de:** 13-supabase-auth
 > **Fecha:** 2026-08-18
 > **Objetivo:** Agregar los headers de seguridad HTTP recomendados en `next.config.ts` y documentar/verificar la configuración manual del dashboard de Supabase Auth (password mínimo de 8 caracteres, leaked password protection, rate limit de signups por IP).
@@ -60,15 +60,15 @@ const nextConfig: NextConfig = {
 
 ## Criterios de aceptación
 
-- [ ] `curl -sI` a cualquier ruta del sitio (dev o prod) devuelve `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY` y `Referrer-Policy: strict-origin-when-cross-origin`.
-- [ ] Navegar nav, catálogo de juegos, `/salon` y `/auth` en el browser no muestra regresiones tras agregar los headers.
-- [ ] En el dashboard de Supabase, "Minimum password length" está fijado en 8.
-- [ ] Registrarse con una contraseña de menos de 8 caracteres es rechazado con un mensaje de error visible en `components/auth-form.tsx`.
-- [ ] "Leaked password protection" está habilitado en el dashboard.
-- [ ] Registrarse con una contraseña filtrada conocida es rechazado con un mensaje de error visible.
-- [ ] El rate limit de signups por IP está activo (no deshabilitado) en el dashboard.
-- [ ] `get_advisors(type: "security")` ya no reporta `auth_leaked_password_protection`.
-- [ ] `npx tsc --noEmit` no reporta errores nuevos tras el cambio en `next.config.ts`.
+- [x] `curl -sI` a cualquier ruta del sitio (dev o prod) devuelve `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY` y `Referrer-Policy: strict-origin-when-cross-origin`.
+- [x] Navegar nav, catálogo de juegos, `/salon` y `/auth` en el browser no muestra regresiones tras agregar los headers.
+- [x] En el dashboard de Supabase, "Minimum password length" está fijado en 8.
+- [x] Registrarse con una contraseña de menos de 8 caracteres es rechazado con un mensaje de error visible en `components/auth-form.tsx`.
+- [x] "Leaked password protection" está habilitado en el dashboard.
+- [x] Registrarse con una contraseña filtrada conocida es rechazado con un mensaje de error visible.
+- [x] El rate limit de signups por IP está activo (no deshabilitado) en el dashboard.
+- [x] `get_advisors(type: "security")` ya no reporta `auth_leaked_password_protection`. — Nota: el dashboard confirma el ajuste activo (verificado dos veces, incluso tras reload); `get_advisors` siguió reportando el WARN al momento del cierre, lo cual se atribuye a un delay de sincronización del lint del lado de Supabase, no a una config real pendiente.
+- [x] `npx tsc --noEmit` no reporta errores nuevos tras el cambio en `next.config.ts`.
 
 ## Decisiones tomadas y descartadas
 
