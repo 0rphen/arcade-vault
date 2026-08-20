@@ -29,6 +29,7 @@ Typical chain for a new game: `game-planner` → `/add-game` → `/spec-impl-gam
 - `skin-designer` (`.claude/agents/skin-designer.md`) — implements at least 3 visual themes (Neon, Retro, Clásico) × light/dark for an already-implemented game, code directly, no spec.
 - `mobile-porter` (`.claude/agents/mobile-porter.md`) — audits/fixes a given game's mobile experience (canvas, HUD, touch controls) per spec 10.
 - `game-performance` (`.claude/agents/game-performance.md`) — audits/optimizes a given game's rendering performance per spec 12, logs results in `references/performance_baseline.md`.
+- `security-auditor` (`.claude/agents/security-auditor.md`) — audits Supabase security (RLS, `SECURITY DEFINER` functions, advisors), the Next.js app (auth, server actions, API routes, headers), secrets/env, and npm dependencies; read-only, never writes code or migrations, logs findings in `references/security/audit-log.md`.
 
 Each agent's full contract, guardrails, and phases live in its own `.md` file above — read that file for details beyond this one-line summary.
 
