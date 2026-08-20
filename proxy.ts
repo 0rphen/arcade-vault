@@ -33,7 +33,11 @@ export async function proxy(request: NextRequest) {
   if (!user && request.nextUrl.pathname.startsWith("/perfil")) {
     const url = request.nextUrl.clone();
     url.pathname = "/auth";
-    return NextResponse.redirect(url);
+    const redirectResponse = NextResponse.redirect(url);
+    response.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie);
+    });
+    return redirectResponse;
   }
 
   return response;
