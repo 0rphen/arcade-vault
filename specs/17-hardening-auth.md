@@ -73,6 +73,8 @@ async function recordAttempt(
 }
 ```
 
+**Desvío respecto de este bloque (post-implementación):** un review de seguridad detectó que `checkRateLimit`/`recordAttempt` como dos llamadas separadas tienen una condición de carrera (TOCTOU) — requests concurrentes pueden leer el mismo count antes de que cualquiera inserte, superando `MAX_ATTEMPTS`. Se reemplazaron por una única función `consumeRateLimit(ip, action)` en `lib/auth/rate-limit.ts` que invoca una función Postgres atómica (`auth_rate_limit_attempt`, `security definer`, `pg_advisory_xact_lock` por `ip+action`, `EXECUTE` revocado de `anon`/`authenticated`) que hace el conteo y el insert en una sola transacción. También se cambió de fail-open a fail-closed: si el RPC falla, `consumeRateLimit` devuelve `allowed: false` en vez de dejar pasar el intento. Verificado con 10 requests concurrentes a la misma IP → exactamente 5 permitidos.
+
 ```ts
 // lib/auth/errors.ts (nuevo) — mapeo de error.code de Supabase a mensaje genérico
 const AUTH_ERROR_MESSAGES: Record<string, string> = {
@@ -99,7 +101,7 @@ Sin cambios de tipos en `AuthActionResult` ni en componentes cliente — todo lo
 ## Criterios de aceptación
 
 - [x] `select relrowsecurity from pg_class where relname = 'auth_rate_limits'` → `true`, y `select * from auth_rate_limits` con la anon key devuelve 0 filas.
-- [x] 5 intentos fallidos de login desde la misma IP en menos de 5 minutos bloquean el 6to intento con el mensaje "Demasiados intentos. Esperá unos minutos e intentá de nuevo.", sin llamar a `supabase.auth.signInWithPassword`. Verificado a nivel de `checkRateLimit`/`recordAttempt` (6 llamadas consecutivas, `allowed: false` en la 6ta).
+- [x] 5 intentos fallidos de login desde la misma IP en menos de 5 minutos bloquean el 6to intento con el mensaje "Demasiados intentos. Esperá unos minutos e intentá de nuevo.", sin llamar a `supabase.auth.signInWithPassword`. Verificado a nivel de `consumeRateLimit` (6 llamadas consecutivas, `allowed: false` en la 6ta) y bajo concurrencia (10 requests en paralelo → exactamente 5 `allowed: true`, sin excedente por race).
 - [x] Pasada la ventana de 5 minutos (o con filas viejas eliminadas), el login vuelve a funcionar normalmente. Verificado insertando filas con `created_at` de hace 10 min: no cuentan contra el límite.
 - [ ] Con `NEXT_PUBLIC_SITE_URL` seteada, el email de confirmación de un signup nuevo usa esa URL en `emailRedirectTo`, no el header `host` de la request. **No verificado**: no hay una URL de producción real disponible todavía para setear la env var; el código en `getOrigin()` prioriza la env var si está presente, pero `.env` la tiene vacía hoy.
 - [x] Sin `NEXT_PUBLIC_SITE_URL` seteada (dev/LAN), el flujo de auth sigue funcionando vía el fallback de headers, sin regresión frente al comportamiento actual. Verificado en browser (login, signup, logout, `/perfil`).

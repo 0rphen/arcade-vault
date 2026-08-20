@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { checkRateLimit, recordAttempt } from "@/lib/auth/rate-limit";
+import { consumeRateLimit } from "@/lib/auth/rate-limit";
 import { mapAuthError } from "@/lib/auth/errors";
 
 export type AuthActionResult = { error: string | null };
@@ -41,9 +41,8 @@ export async function signUpAction(
   }
 
   const ip = await getClientIp();
-  const { allowed } = await checkRateLimit(ip, "signup");
+  const { allowed } = await consumeRateLimit(ip, "signup");
   if (!allowed) return { error: RATE_LIMIT_MESSAGE };
-  await recordAttempt(ip, "signup");
 
   const supabase = await createClient();
   const origin = await getOrigin();
@@ -66,9 +65,8 @@ export async function signInAction(
   password: string,
 ): Promise<AuthActionResult> {
   const ip = await getClientIp();
-  const { allowed } = await checkRateLimit(ip, "signin");
+  const { allowed } = await consumeRateLimit(ip, "signin");
   if (!allowed) return { error: RATE_LIMIT_MESSAGE };
-  await recordAttempt(ip, "signin");
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({

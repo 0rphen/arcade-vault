@@ -3,28 +3,22 @@ import { createAdminClient } from "@/lib/supabase/admin";
 const MAX_ATTEMPTS = 5;
 const WINDOW_MINUTES = 5;
 
-export async function checkRateLimit(
+// Chequea y registra el intento en una sola llamada atómica (función
+// Postgres con advisory lock) para evitar un race entre check e insert
+// bajo requests concurrentes. Falla cerrado: si el RPC falla, bloquea.
+export async function consumeRateLimit(
   ip: string,
   action: "signin" | "signup",
 ): Promise<{ allowed: boolean }> {
   const supabase = createAdminClient();
-  const since = new Date(Date.now() - WINDOW_MINUTES * 60_000).toISOString();
 
-  const { count, error } = await supabase
-    .from("auth_rate_limits")
-    .select("id", { count: "exact", head: true })
-    .eq("ip", ip)
-    .eq("action", action)
-    .gte("created_at", since);
+  const { data, error } = await supabase.rpc("auth_rate_limit_attempt", {
+    p_ip: ip,
+    p_action: action,
+    p_max_attempts: MAX_ATTEMPTS,
+    p_window_minutes: WINDOW_MINUTES,
+  });
 
-  if (error) return { allowed: true };
-  return { allowed: (count ?? 0) < MAX_ATTEMPTS };
-}
-
-export async function recordAttempt(
-  ip: string,
-  action: "signin" | "signup",
-): Promise<void> {
-  const supabase = createAdminClient();
-  await supabase.from("auth_rate_limits").insert({ ip, action });
+  if (error) return { allowed: false };
+  return { allowed: data === true };
 }

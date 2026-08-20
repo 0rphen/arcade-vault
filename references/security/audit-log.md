@@ -41,6 +41,14 @@ Severidades: crítico (explotable hoy, impacto alto) · alto · medio · bajo ·
 
 ## Corridas
 
+### 2026-08-20 (2) — fixes post-PR de spec 17
+
+- Dos reviews automáticos de seguridad sobre el commit/push de spec 17 detectaron: fail-open en `checkRateLimit` (error de DB → `allowed: true`), y una condición de carrera (TOCTOU) entre `checkRateLimit`/`recordAttempt` — requests concurrentes podían superar `MAX_ATTEMPTS`.
+- Fix: se reemplazaron ambas funciones por `consumeRateLimit(ip, action)`, que llama a una función Postgres nueva (`auth_rate_limit_attempt`, `security definer`, `pg_advisory_xact_lock` por `ip+action`) que hace el conteo y el insert de forma atómica en una sola transacción. Fail-closed: si el RPC falla, bloquea el intento en vez de dejarlo pasar.
+- El primer intento de migración solo revocó `EXECUTE` de `public` en la función nueva; `has_function_privilege` mostró que `anon`/`authenticated` seguían con `EXECUTE` (mismo patrón que `handle_new_user`/`rls_auto_enable`, ACC-02 — Supabase otorga el grant explícito a esos roles, no vía `PUBLIC`). Corregido con un segundo `revoke ... from anon, authenticated`; confirmado `has_function_privilege` → `false`/`false`.
+- Verificado: 10 llamadas concurrentes a `consumeRateLimit` con la misma IP → exactamente 5 `allowed: true`, sin excedente.
+- El cuarto hallazgo del review (IP de `x-forwarded-for` sin validar contra proxy confiable) ya estaba documentado como riesgo aceptado en `specs/17-hardening-auth.md` — no se tocó.
+
 ### 2026-08-20 — cierre de spec 17 (hardening de auth)
 
 - Implementación de `specs/17-hardening-auth.md`: rate limit propio de login/signup (`auth_rate_limits`, tabla nueva con RLS sin políticas + cliente admin service-role), origen confiable vía `NEXT_PUBLIC_SITE_URL`, `safeNext()` + allow-list de `EmailOtpType` en los callbacks de auth, mensajes de error genéricos (`mapAuthError`), validación server-side de `nickname`, y fix de cookies descartadas en `proxy.ts`.
