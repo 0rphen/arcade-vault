@@ -1,11 +1,6 @@
 import { notFound } from "next/navigation";
-import { getGameById, getGames, getTopScores } from "@/lib/supabase/queries";
+import { getGameById, getTopScores } from "@/lib/supabase/queries";
 import GameDetail from "@/components/game-detail";
-
-export async function generateStaticParams() {
-  const games = await getGames();
-  return games.map((g) => ({ id: g.id }));
-}
 
 export default async function GameDetailPage({
   params,
