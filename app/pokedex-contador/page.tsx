@@ -26,25 +26,11 @@ export default function PokedexContadorPage() {
         textAlign: "center",
       }}
     >
-      <h1
-        style={{
-          fontFamily: "var(--pixel)",
-          fontSize: "1.5rem",
-          color: "var(--cyan)",
-          textShadow: "0 0 8px var(--cyan)",
-        }}
-      >
+      <h1 className="pixel neon-cyan" style={{ fontSize: "1.5rem" }}>
         Contador Pokédex
       </h1>
 
-      <div
-        style={{
-          fontFamily: "var(--pixel)",
-          fontSize: "3rem",
-          color: "var(--yellow)",
-          textShadow: "0 0 12px var(--yellow)",
-        }}
-      >
+      <div className="pixel neon-yellow" style={{ fontSize: "3rem" }}>
         {count}
       </div>
 
